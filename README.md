@@ -1,8 +1,10 @@
 # Manimo
 
-**Math, in motion.** Manimo is a Windows desktop app that turns animation code into narrated lesson videos, on your own computer, offline, with no account. It is made for teachers, students and anyone who wants moving diagrams without learning Python.
+**Math, in motion.** Manimo is a Windows desktop app that turns animation code into narrated lesson videos, on your own computer, offline, with no account.
 
-Write or paste an animation, press **Start Rendering**, watch it in the preview, then join your scenes into one finished video with narration, music and captions.
+**Made for teachers.** You do not need to be a programmer. Ask an AI (the built-in assistant, or any chatbot) for an animation of the idea you teach, **copy and paste the code** into Manimo, change a number, a word or a colour, and press **Start Rendering**. Your lesson video appears in seconds. Tweak the code, render again, and keep going until it says what you want. The Lesson prompt builder helps you ask for the right thing, and hovering over any line of code explains what it does.
+
+Then join your scenes into one finished video with narration, music and captions, in wide, tall (phone) or square shapes.
 
 ![Manimo editor with the live preview](docs/images/app-editor.webp)
 
