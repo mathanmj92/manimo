@@ -44,3 +44,6 @@ Optional component "Manim Community Edition and LaTeX" (only present if you tick
     The licence texts are in texlive\LICENSE.TL and texlive\LICENSE.CTAN.
 You can remove Manimo at any time from Settings > Apps > Installed apps. Videos you rendered are never touched.
 
+Source code
+  For the GPL and LGPL components listed above, where to get the source code and how to ask for it is in
+  SOURCE-OFFER.md in the Manimo repository (installer folder): https://github.com/mathanmj92/manimo

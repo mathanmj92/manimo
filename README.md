@@ -29,6 +29,8 @@ Then join your scenes into one finished video with narration, music and captions
 
 ## Install
 
+**Windows only for now.** There are no macOS or Linux builds yet.
+
 Download the latest `Manimo-Setup-<version>.exe` from the [Releases](../../releases) page and run it. It installs for the current user only (no administrator rights) and works fully offline.
 
 The installer is signed with a self-made test certificate for now, so Windows SmartScreen may show "Windows protected your PC" on first run: choose **More info**, then **Run anyway**. A real code-signing certificate is planned.
@@ -103,6 +105,8 @@ With thanks to the **ManimGX** team at Academa and to the developers of **Manim 
 ## Licence
 
 Manimo's own code is released under the [MIT licence](LICENSE). The installer bundles third-party software, each under its own licence; see [installer/THIRD-PARTY-NOTICES.txt](installer/THIRD-PARTY-NOTICES.txt).
+
+Some bundled programs (pdfTeX and dvisvgm in the optional LaTeX component, parts of ManimGX and FFmpeg) are under the GPL or LGPL. Where to get their source code, and how to ask for it, is in [installer/SOURCE-OFFER.md](installer/SOURCE-OFFER.md).
 
 ## Contributing and reporting problems
 
