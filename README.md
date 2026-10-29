@@ -4,7 +4,7 @@
 
 Write or paste an animation, press **Start Rendering**, watch it in the preview, then join your scenes into one finished video with narration, music and captions.
 
-![Manimo editor with the live preview](site/assets/img/app-editor.webp)
+![Manimo editor with the live preview](docs/images/app-editor.webp)
 
 ## What it does
 
@@ -21,7 +21,7 @@ Write or paste an animation, press **Start Rendering**, watch it in the preview,
 
 | Compose editor | AI assistant | Hover help |
 |---|---|---|
-| ![Compose](site/assets/img/compose.webp) | ![Assistant](site/assets/img/assistant.webp) | ![Hover help](site/assets/img/hover-help.webp) |
+| ![Compose](docs/images/compose.webp) | ![Assistant](docs/images/assistant.webp) | ![Hover help](docs/images/hover-help.webp) |
 
 ## Install
 
@@ -83,16 +83,13 @@ More in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 ## Repository layout
 
 ```
-app/         the application (server, project and Compose logic, front end, AI helper and skill pack)
+app/         the application: server, project and Compose logic, front end, AI helper and skill pack
 editor/      source for the bundled code editor (built into app/vendor/editor.js)
-installer/   Inno Setup script, build script, notices
-site/        the product landing page
-web/         a static in-browser demo
-skills/      the Manimo animator skill pack
+installer/   Inno Setup script, build script, third-party notices
 tests/       automatic tests
-tools/       helper scripts (voice model download, skill packaging)
+tools/       helper scripts (voice model download)
+docs/        architecture notes and README images
 ```
-
 ## Credits and thanks
 
 Built by **Mathan Kumar P** (Coimbatore, Tamil Nadu) with **Claude**, an AI assistant from Anthropic.

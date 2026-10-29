@@ -30,3 +30,13 @@ desktop.ini
 
 # Legacy installer script from before Manimo
 Install ManimGX Studio.bat
+
+# Kept locally, not part of the application repository
+site/
+web/
+skills/
+design/
+.impeccable/
+PRODUCT.md
+DESIGN-SPEC.md
+tools/Package-Skill.ps1
