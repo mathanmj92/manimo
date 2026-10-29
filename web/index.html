@@ -1,0 +1,872 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="description" content="Write or paste ManimGX Python code and watch it render as video, right in your browser, using your own graphics card. Nothing is uploaded.">
+<title>ManimGX Studio</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%233b5bdb'/%3E%3Cpath d='M5.5 20.5c3.2 0 3.2-9 6.5-9s3.2 9 6.5 9 3.2-9 6.5-9' fill='none' stroke='white' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E">
+<script>
+/* Resolve theme before first paint so there is no flash. */
+(function () {
+  var pref = 'system';
+  try { pref = localStorage.getItem('mgx-theme') || 'system'; } catch (e) {}
+  var dark = pref === 'dark' || (pref === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
+  document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+})();
+</script>
+<link rel="stylesheet" href="studio.css">
+<link rel="stylesheet" href="web.css">
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L8.5 4.64A1 1 0 0 0 7 5.5z"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 7.5A1.5 1.5 0 0 1 4.5 6h4.2a1.5 1.5 0 0 1 1.1.5l1.2 1.3a1.5 1.5 0 0 0 1.1.5h7.4A1.5 1.5 0 0 1 21 9.8v7.7a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5z"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H7.5A1.5 1.5 0 0 0 6 4.5v15A1.5 1.5 0 0 0 7.5 21h9a1.5 1.5 0 0 0 1.5-1.5V7z"/><path d="M14 3v4h4"/><path d="m10 13-1.5 1.5L10 16M14 13l1.5 1.5L14 16"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 3v1.5M12 19.5V21M3 12h1.5M19.5 12H21M5.6 5.6l1.1 1.1M17.3 17.3l1.1 1.1M5.6 18.4l1.1-1.1M17.3 6.7l1.1-1.1"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path class="tick" d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></symbol>
+  <symbol id="i-film" viewBox="0 0 24 24"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="m16 10.5 5-3v9l-5-3"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 4 3 19.5h18z"/><path d="M12 10v4.5M12 17.2v.01"/></symbol>
+  <symbol id="i-clip" viewBox="0 0 24 24"><rect x="6" y="5" width="12" height="16" rx="2"/><path d="M9 5V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1"/></symbol>
+  <symbol id="i-shapes" viewBox="0 0 24 24"><circle cx="7.5" cy="16.5" r="3.5"/><path d="M14.5 4.5 19 12h-9z"/><rect x="14" y="14" width="6" height="6" rx="1"/></symbol>
+  <symbol id="i-min" viewBox="0 0 24 24"><path d="M6 12h12"/></symbol>
+  <symbol id="i-up" viewBox="0 0 24 24"><path d="m6 15 6-6 6 6"/></symbol>
+  <symbol id="i-cpu" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/><rect x="10" y="10" width="4" height="4" rx=".5"/><path d="M9 3v3M15 3v3M9 18v3M15 18v3M3 9h3M3 15h3M18 9h3M18 15h3"/></symbol>
+  <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 3 5 13.5h6L10 21l8-10.5h-6z"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M5 7h14M10 7V5h4v2M7 7l1 12h8l1-12"/></symbol>
+  <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></symbol>
+<symbol id="i-share" viewBox="0 0 24 24"><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="m8.2 10.8 7.6-3.6M8.2 13.2l7.6 3.6"/></symbol><symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 19h14"/></symbol></svg>
+
+<div class="app" id="app">
+  <header class="topbar">
+    <div class="brand">
+      <svg viewBox="0 0 32 32" aria-hidden="true">
+        <rect width="32" height="32" rx="9" fill="var(--accent)"/>
+        <path d="M5.5 20.5c3.2 0 3.2-9 6.5-9s3.2 9 6.5 9 3.2-9 6.5-9" fill="none" stroke="var(--on-accent)" stroke-width="2.4" stroke-linecap="round"/>
+        <circle cx="25.5" cy="11.5" r="2.2" fill="var(--on-accent)"/>
+      </svg>
+      <span>ManimGX <span class="sub">Studio</span></span>
+    </div>
+    <div class="file-chip" title="Current file"><svg class="ic sm"><use href="#i-file"/></svg><span id="fileName">Untitled.py</span></div>
+    <div class="spacer"></div>
+    <div class="pill" id="enginePill" role="status"><i></i><span class="t" id="engineText">Checking…</span></div>
+    <div class="top-actions">
+      <button class="btn ghost" id="openBtn" title="Open a .py file (Ctrl+O)"><svg class="ic"><use href="#i-file"/></svg><span class="t">Open file</span></button>
+      <button class="btn ghost" id="shareBtn" title="Copy a link that opens this code"><svg class="ic"><use href="#i-share"/></svg><span class="t">Share</span></button>
+      <button class="icon-btn" id="settingsBtn" aria-label="Settings" aria-haspopup="dialog" aria-expanded="false" aria-controls="settings" title="Settings"><svg class="ic"><use href="#i-sliders"/></svg></button>
+      <button class="icon-btn" id="themeBtn" aria-label="Switch to light mode" title="Toggle light / dark"><svg class="ic"><use id="themeIcon" href="#i-sun"/></svg></button>
+    </div>
+  </header>
+
+  <div class="banner" id="banner" hidden role="alert">
+    <svg class="ic"><use href="#i-alert"/></svg>
+    <div id="bannerText"></div>
+  </div>
+
+  <main class="workspace" id="workspace" data-view="code">
+    <div class="split">
+      <div class="seg tabs" role="tablist" aria-label="View">
+        <button role="tab" id="tabCode" aria-selected="true" aria-controls="editorSec">Code</button>
+        <button role="tab" id="tabPreview" aria-selected="false" aria-controls="stageSec">Preview</button>
+      </div>
+
+      <section class="editor" id="editorSec" aria-label="Animation code">
+        <div class="editor-head">
+          <span class="title" id="editorTitle">Code</span>
+          <span class="spacer"></span>
+          <button class="btn ghost" id="pasteBtn" title="Paste from clipboard"><svg class="ic sm"><use href="#i-clip"/></svg><span class="t">Paste</span></button>
+          <button class="btn ghost" id="exampleBtn" title="Load an example"><svg class="ic sm"><use href="#i-shapes"/></svg><span class="t">Example</span></button>
+          <button class="btn ghost" id="clearBtn" title="Clear editor"><svg class="ic sm"><use href="#i-trash"/></svg><span class="t">Clear</span></button>
+        </div>
+        <div class="code">
+          <div class="gutter-wrap"><div class="gutter" id="gutter" aria-hidden="true">1</div></div>
+          <div class="stack">
+            <pre class="hl" id="hl" aria-hidden="true"></pre>
+            <textarea id="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" aria-label="ManimGX Python code" aria-describedby="hint"></textarea>
+          </div>
+          <div class="empty" id="empty">
+            <div class="empty-inner">
+              <svg class="mark" viewBox="0 0 32 32" aria-hidden="true">
+                <rect width="32" height="32" rx="9" fill="var(--accent)"/>
+                <path d="M5.5 20.5c3.2 0 3.2-9 6.5-9s3.2 9 6.5 9 3.2-9 6.5-9" fill="none" stroke="var(--on-accent)" stroke-width="2.4" stroke-linecap="round"/>
+                <circle cx="25.5" cy="11.5" r="2.2" fill="var(--on-accent)"/>
+              </svg>
+              <h1>Turn your animation code into video</h1>
+              <p>Paste your ManimGX code, open a <b>.py</b> file, or start from an example. It renders here, in your browser.</p>
+              <div class="actions">
+                <button class="btn primary lg" id="emptyPaste"><svg class="ic"><use href="#i-clip"/></svg>Paste code</button>
+                <button class="btn lg" id="emptyOpen"><svg class="ic"><use href="#i-file"/></svg>Open .py file</button>
+                <button class="btn lg" id="emptyExample"><svg class="ic"><use href="#i-shapes"/></svg>Try an example</button>
+              </div>
+              <div class="tip">Your code never leaves your device. You can also drag a file onto this window.</div>
+            </div>
+          </div>
+        </div>
+        <div class="editor-foot">
+          <span class="msg ok" id="sceneMsg">No code yet</span>
+          <span class="pos" id="pos">Ln 1, Col 1</span>
+        </div>
+      </section>
+
+      <section class="stage" id="stageSec" aria-label="Preview">
+        <div class="stage-head">
+          <span class="title">Preview</span>
+          <span class="spacer"></span>
+          <button class="btn ghost" id="saveBtn" title="Record the animation to a video file"><svg class="ic sm"><use href="#i-download"/></svg><span class="t">Save video</span></button>
+        </div>
+        <div class="stage-body">
+          <div class="film" id="film">
+            <div class="film-empty" id="filmEmpty"><b>Your animation appears here</b><span>Press Start Rendering. The first time, the engine downloads about 26 MB. After that it starts in seconds.</span></div>
+          </div>
+        </div>
+        <div class="stage-foot">
+          <span id="stageMsg">Nothing rendered yet</span>
+          <span class="pos num" id="stageTime">0:00 / 0:00</span>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="runbar">
+    <div class="inner">
+      <label class="chip scene-chip" id="sceneChip" hidden><span class="k">Scene</span><select id="sceneSel" aria-label="Scene to render"></select></label>
+      <button class="chip" id="qualityChip" title="Settings"><svg class="ic sm"><use href="#i-film"/></svg><span class="lbl" id="qualityLbl">Save: 1080p</span></button>
+      <span class="hint" id="hint" aria-live="polite"></span>
+      <button class="btn primary lg" id="startBtn"><svg class="ic"><use href="#i-play"/></svg><span id="startLbl">Start Rendering</span><kbd id="startKbd">Ctrl&nbsp;↵</kbd></button>
+    </div>
+  </footer>
+</div>
+
+<!-- Settings (popover on desktop, sheet on phone) -->
+<aside class="panel settings" id="settings" role="dialog" aria-labelledby="settingsTitle" hidden>
+  <div class="panel-head">
+    <h2 id="settingsTitle">Settings</h2>
+    <button class="icon-btn" id="settingsClose" aria-label="Close settings"><svg class="ic"><use href="#i-x"/></svg></button>
+  </div>
+  <div class="panel-body">
+    <fieldset class="field">
+      <legend>Saved video size</legend>
+      <div class="seg" role="radiogroup" aria-label="Saved video size" data-key="size">
+        <button role="radio" data-v="720">720p</button><button role="radio" data-v="1080">1080p</button>
+      </div>
+      <p class="help">The preview always fits your screen. This sets the size of the file you save.</p>
+    </fieldset>
+    <fieldset class="field">
+      <legend>Saved frame rate</legend>
+      <div class="seg" role="radiogroup" aria-label="Saved frame rate" data-key="fps">
+        <button role="radio" data-v="30">30 fps</button><button role="radio" data-v="60">60 fps</button>
+      </div>
+    </fieldset>
+    <fieldset class="field">
+      <legend>Appearance</legend>
+      <div class="seg" role="radiogroup" aria-label="Appearance" data-key="theme">
+        <button role="radio" data-v="system">System</button><button role="radio" data-v="light">Light</button><button role="radio" data-v="dark">Dark</button>
+      </div>
+    </fieldset>
+    <div class="panel-foot">
+      <button class="btn ghost" id="resetSettings">Reset</button>
+      <button class="btn primary" id="settingsDone">Done</button>
+    </div>
+  </div>
+</aside>
+
+<!-- Progress (floating pop-out) -->
+<aside class="panel progress" id="progress" role="region" aria-label="Render progress" hidden>
+  <div class="panel-head">
+    <span class="status-dot" aria-hidden="true"></span>
+    <h2 id="pTitle">Starting…</h2>
+    <button class="icon-btn" id="pMin" aria-label="Minimise progress" title="Minimise"><svg class="ic"><use href="#i-min"/></svg></button>
+    <button class="icon-btn" id="pClose" aria-label="Close" title="Close" hidden><svg class="ic"><use href="#i-x"/></svg></button>
+  </div>
+  <div class="panel-body" id="pBody"></div>
+</aside>
+<button class="mini" id="mini" aria-label="Show render progress">
+  <span class="status-dot" aria-hidden="true"></span>
+  <span class="bar" aria-hidden="true"><i id="miniFill"></i></span>
+  <span class="n" id="miniPct">0%</span>
+  <svg class="ic sm"><use href="#i-up"/></svg>
+</button>
+
+<!-- Saving a video: the tab has to stay open while the animation plays through once -->
+<div class="rec" id="rec" role="dialog" aria-modal="true" aria-labelledby="recTitle">
+  <div class="rec-card">
+    <h2 id="recTitle">Saving your video</h2>
+    <p id="recText">The animation plays through once at full size while it is recorded. Keep this tab open and visible.</p>
+    <div class="n" id="recPct">0%</div>
+    <div class="bar" role="progressbar" aria-label="Recording progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="recBar"><i id="recFill"></i></div>
+    <div class="row-actions" style="justify-content:center;margin-top:20px"><button class="btn" id="recCancel">Cancel</button></div>
+  </div>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<div class="dropzone" id="dropzone">Drop your .py file to load it</div>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+<div class="sr-only" id="live" role="status" aria-live="polite"></div>
+<input type="file" id="fileInput" accept=".py,text/x-python,text/plain" hidden>
+
+<script type="module">
+import { settings } from './vendor/manimgx.js';
+
+/* Set this to a self-hosted Pyodide folder (ending in "/") to stop depending on the jsDelivr CDN. */
+const PYODIDE_URL = null;
+if (PYODIDE_URL) settings.pyodide = PYODIDE_URL;
+
+const $ = (id) => document.getElementById(id);
+const root = document.documentElement;
+const phone = matchMedia('(max-width: 720px)');
+const narrow = matchMedia('(max-width: 1000px)');
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+function store(k, v) {
+  try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) {}
+  return null;
+}
+function esc(s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+function toast(msg) {
+  const t = document.createElement('div');
+  t.className = 'toast'; t.textContent = msg;
+  $('toasts').appendChild(t);
+  setTimeout(() => { t.classList.add('out'); setTimeout(() => t.remove(), 260); }, 3400);
+}
+function say(msg) { $('live').textContent = ''; setTimeout(() => { $('live').textContent = msg; }, 30); }
+function fmt(sec) {
+  if (sec == null || !isFinite(sec)) return '—';
+  sec = Math.max(0, Math.round(sec));
+  return Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0');
+}
+
+/* ---------- settings + theme ---------- */
+const DEFAULTS = { size: '1080', fps: 30, theme: 'system' };
+let S = Object.assign({}, DEFAULTS);
+try { Object.assign(S, JSON.parse(store('mgx-web-settings') || '{}')); } catch (e) {}
+S.theme = store('mgx-theme') || S.theme;
+
+const mq = matchMedia('(prefers-color-scheme: dark)');
+function applyTheme(animate) {
+  const dark = S.theme === 'dark' || (S.theme === 'system' && mq.matches);
+  if (animate && !reduceMotion.matches) {
+    root.classList.add('theme-anim');
+    setTimeout(() => root.classList.remove('theme-anim'), 300);
+  }
+  root.dataset.theme = dark ? 'dark' : 'light';
+  $('themeIcon').setAttribute('href', dark ? '#i-sun' : '#i-moon');
+  $('themeBtn').setAttribute('aria-label', dark ? 'Switch to light mode' : 'Switch to dark mode');
+}
+mq.addEventListener('change', () => { if (S.theme === 'system') applyTheme(true); });
+$('themeBtn').addEventListener('click', () => {
+  S.theme = root.dataset.theme === 'dark' ? 'light' : 'dark';
+  store('mgx-theme', S.theme); applyTheme(true); syncSettingsUI();
+});
+
+/* ---------- editor ---------- */
+const code = $('code'), hl = $('hl'), gutter = $('gutter');
+const KW = new Set('and as assert async await break class continue def del elif else except finally for from global if import in is lambda nonlocal not or pass raise return try while with yield True False None self'.split(' '));
+const TOK = /(#[^\n]*)|("""[\s\S]*?"""|'''[\s\S]*?'''|"(?:\\.|[^"\\\n])*"|'(?:\\.|[^'\\\n])*')|(\b\d+(?:\.\d+)?\b)|([A-Za-z_]\w*)|([\s\S])/g;
+function highlight(src) {
+  let out = '', m, prev = '';
+  TOK.lastIndex = 0;
+  while ((m = TOK.exec(src))) {
+    if (m[1]) out += '<span class="t-com">' + esc(m[1]) + '</span>';
+    else if (m[2]) out += '<span class="t-str">' + esc(m[2]) + '</span>';
+    else if (m[3]) out += '<span class="t-num">' + m[3] + '</span>';
+    else if (m[4]) {
+      const w = m[4];
+      let cls = '';
+      if (KW.has(w)) cls = 't-kw';
+      else if (prev === 'class') cls = 't-cls';
+      else if (prev === 'def') cls = 't-fn';
+      else if (/^[A-Z]/.test(w) && src.charAt(TOK.lastIndex) === '(') cls = 't-cls';
+      out += cls ? '<span class="' + cls + '">' + w + '</span>' : w;
+      prev = w; continue;
+    } else out += esc(m[5]);
+    if (m[5] && /\S/.test(m[5])) prev = '';
+  }
+  return out + '\n ';
+}
+/* A scene is a class with a base called *Scene*, even in a mixin list: class A(Parts, m.Scene): */
+const CLASS_RE = /^class\s+(\w+)\s*\(([^)]*)\)\s*:/gm;
+function scenesOf(src) {
+  const r = []; let m;
+  CLASS_RE.lastIndex = 0;
+  while ((m = CLASS_RE.exec(src))) {
+    if (m[2].split(',').some((b) => /(^|\.)\w*Scene\w*$/.test(b.trim()))) r.push(m[1]);
+  }
+  return r;
+}
+/* Rough length of the film, from the code, so progress can be shown as an estimate. */
+function estimateSeconds(src) {
+  let total = 0;
+  const calls = src.split(/self\.(?=play\(|wait\()/).slice(1);
+  for (const c of calls) {
+    if (c.startsWith('wait(')) { const m = c.match(/^wait\(\s*([\d.]+)/); total += m ? parseFloat(m[1]) : 1; }
+    else { const m = c.slice(0, 400).split(/\n\s*self\./)[0].match(/run_time\s*=\s*([\d.]+)/); total += m ? parseFloat(m[1]) : 1; }
+  }
+  return Math.max(total, 1);
+}
+
+let selScene = '', sceneKey = '';
+function syncSceneMenu(names) {
+  const key = names.join('|');
+  if (!names.includes(selScene)) selScene = names[names.length - 1] || '';
+  if (key !== sceneKey) {
+    sceneKey = key;
+    $('sceneSel').innerHTML = names.map((n) => '<option>' + esc(n) + '</option>').join('');
+  }
+  $('sceneSel').value = selScene;
+  $('sceneChip').hidden = names.length < 2;
+}
+$('sceneSel').addEventListener('change', function () { selScene = this.value; updateStatus(); });
+
+function renderEditor() {
+  const v = code.value;
+  hl.innerHTML = highlight(v);
+  const n = v.split('\n').length;
+  let g = '';
+  for (let i = 1; i <= n; i++) g += i + '\n';
+  gutter.textContent = g.slice(0, -1);
+  $('empty').hidden = v.length > 0;
+  updateStatus(); updateCaret(); syncScroll();
+  store('mgx-web-code', v);
+}
+function syncScroll() {
+  hl.style.transform = 'translate(' + (-code.scrollLeft) + 'px,' + (-code.scrollTop) + 'px)';
+  gutter.style.transform = 'translateY(' + (-code.scrollTop) + 'px)';
+}
+function updateCaret() {
+  const upto = code.value.slice(0, code.selectionStart).split('\n');
+  $('pos').textContent = 'Ln ' + upto.length + ', Col ' + (upto[upto.length - 1].length + 1);
+}
+code.addEventListener('input', renderEditor);
+code.addEventListener('scroll', syncScroll);
+['keyup', 'click', 'select'].forEach((e) => code.addEventListener(e, updateCaret));
+code.addEventListener('keydown', (e) => {
+  if (e.key === 'Tab' && !e.ctrlKey && !e.altKey) {
+    e.preventDefault();
+    document.execCommand('insertText', false, '    ');
+  } else if (e.key === 'Enter' && !e.ctrlKey && !e.metaKey) {
+    const line = code.value.slice(0, code.selectionStart).split('\n').pop();
+    const indent = (line.match(/^\s*/) || [''])[0] + (/:\s*$/.test(line) ? '    ' : '');
+    if (indent) { e.preventDefault(); document.execCommand('insertText', false, '\n' + indent); }
+  }
+});
+
+let gpuOk = true, gpuMsg = '';
+function validity() {
+  const v = code.value;
+  if (!v.trim()) return { ok: false, msg: 'Add some code to begin.' };
+  const sc = scenesOf(v);
+  if (!sc.length) return { ok: false, msg: 'No Scene found. Your code needs a class that extends m.Scene.' };
+  if (!gpuOk) return { ok: false, msg: gpuMsg };
+  return { ok: true, scenes: sc };
+}
+function updateStatus() {
+  const v = code.value, chk = validity(), msg = $('sceneMsg'), hint = $('hint');
+  msg.className = 'msg ok'; hint.classList.remove('warn');
+  syncSceneMenu(chk.scenes || (v.trim() ? scenesOf(v) : []));
+  if (!v.trim()) { msg.textContent = 'No code yet'; hint.textContent = 'Add some code to begin'; paintStart(); return; }
+  if (!chk.ok) {
+    msg.className = 'msg warn';
+    msg.innerHTML = '<svg class="ic sm"><use href="#i-alert"/></svg>' + esc(chk.msg);
+    hint.textContent = chk.msg; hint.classList.add('warn'); paintStart(); return;
+  }
+  const names = chk.scenes;
+  msg.textContent = names.length === 1 ? '1 scene: ' + names[0] : names.length + ' scenes found. Rendering ' + selScene + '.';
+  hint.textContent = 'Ready to render ' + selScene;
+  paintStart();
+}
+
+/* ---------- file open / paste / example / drop / share ---------- */
+const EXAMPLE = 'import manimgx as m\n\n\nclass HelloManimGX(m.Scene):\n    def construct(self):\n        title = m.Text("Hello, ManimGX", font_size=56)\n        circle = m.Circle(color=m.BLUE).scale(1.4)\n        square = m.Square(color=m.YELLOW).scale(1.4)\n\n        self.play(m.Write(title))\n        self.play(title.animate.to_edge(m.UP))\n        self.play(m.Create(circle))\n        self.play(m.Transform(circle, square))\n        self.play(m.FadeOut(circle), m.FadeOut(title))\n        self.wait(0.5)\n';
+function setCode(text, name) {
+  code.value = text; renderEditor();
+  $('fileName').textContent = name || 'Untitled.py';
+  $('editorTitle').textContent = name || 'Code';
+  store('mgx-web-name', name || '');
+  code.scrollTop = 0; code.scrollLeft = 0; syncScroll();
+}
+function loadFile(f) {
+  if (!f) return;
+  if (f.size > 1.5e6) { toast('That file is too large to be a ManimGX script.'); return; }
+  const r = new FileReader();
+  r.onload = () => { setCode(String(r.result), f.name); toast('Loaded ' + f.name); };
+  r.readAsText(f);
+}
+function pasteFromClipboard() {
+  const fallback = () => { $('empty').hidden = true; code.focus(); toast('Press Ctrl+V to paste your code'); };
+  if (!(navigator.clipboard && navigator.clipboard.readText)) return fallback();
+  navigator.clipboard.readText().then((t) => {
+    if (t && t.trim()) { setCode(t, 'Pasted code.py'); toast('Code pasted'); }
+    else { code.focus(); toast('Clipboard is empty. Copy your code first.'); }
+  }).catch(fallback);
+}
+const openPicker = () => $('fileInput').click();
+$('fileInput').addEventListener('change', (e) => { loadFile(e.target.files[0]); e.target.value = ''; });
+['openBtn', 'emptyOpen'].forEach((id) => $(id).addEventListener('click', openPicker));
+['pasteBtn', 'emptyPaste'].forEach((id) => $(id).addEventListener('click', pasteFromClipboard));
+['exampleBtn', 'emptyExample'].forEach((id) => $(id).addEventListener('click', () => setCode(EXAMPLE, 'hello_manimgx.py')));
+$('clearBtn').addEventListener('click', () => { setCode('', ''); code.focus(); });
+$('emptyPaste').addEventListener('click', () => { $('empty').hidden = true; });
+let dragDepth = 0;
+window.addEventListener('dragenter', (e) => { if (e.dataTransfer && [...e.dataTransfer.types].includes('Files')) { dragDepth++; $('dropzone').classList.add('show'); } });
+window.addEventListener('dragleave', () => { dragDepth = Math.max(0, dragDepth - 1); if (!dragDepth) $('dropzone').classList.remove('show'); });
+window.addEventListener('dragover', (e) => e.preventDefault());
+window.addEventListener('drop', (e) => { e.preventDefault(); dragDepth = 0; $('dropzone').classList.remove('show'); loadFile(e.dataTransfer.files[0]); });
+
+/* A share link carries the code itself (compressed, in the #fragment), so there is no server to store it. */
+const b64url = (bytes) => btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+const unb64url = (s) => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), (c) => c.charCodeAt(0));
+async function pipe(bytes, stream) {
+  const w = stream.writable.getWriter(); w.write(bytes); w.close();
+  return new Uint8Array(await new Response(stream.readable).arrayBuffer());
+}
+async function shareLink() {
+  if (!code.value.trim()) { toast('Add some code first'); return; }
+  if (!('CompressionStream' in window)) { toast('This browser cannot make share links'); return; }
+  const packed = b64url(await pipe(new TextEncoder().encode(code.value), new CompressionStream('deflate-raw')));
+  const url = location.origin + location.pathname + '#s=' + packed;
+  if (url.length > 30000) { toast('This code is too long for a link. Share the .py file instead.'); return; }
+  try { await navigator.clipboard.writeText(url); toast('Link copied. It opens this code, it does not run it.'); }
+  catch (e) { prompt('Copy this link', url); }
+}
+$('shareBtn').addEventListener('click', shareLink);
+async function loadFromHash() {
+  const m = location.hash.match(/^#s=([\w-]+)$/);
+  if (!m || !('DecompressionStream' in window)) return false;
+  try {
+    const text = new TextDecoder().decode(await pipe(unb64url(m[1]), new DecompressionStream('deflate-raw')));
+    setCode(text, 'shared.py'); toast('Loaded shared code. Press Start Rendering to run it.');
+    history.replaceState(null, '', location.pathname);
+    return true;
+  } catch (e) { toast('That share link could not be read'); return false; }
+}
+
+/* ---------- settings panel ---------- */
+const settingsEl = $('settings');
+let lastOpener = null;
+const persistSettings = () => { const s = Object.assign({}, S); delete s.theme; store('mgx-web-settings', JSON.stringify(s)); };
+function syncSettingsUI() {
+  document.querySelectorAll('[data-key]').forEach((g) => {
+    const key = g.dataset.key;
+    g.querySelectorAll('[role=radio]').forEach((b) => {
+      const on = String(S[key]) === b.dataset.v;
+      b.setAttribute('aria-checked', on); b.tabIndex = on ? 0 : -1;
+    });
+  });
+  $('qualityLbl').textContent = 'Save: ' + S.size + 'p · ' + S.fps + ' fps';
+}
+document.querySelectorAll('[data-key]').forEach((g) => {
+  g.addEventListener('click', (e) => {
+    const b = e.target.closest('[role=radio]'); if (!b) return;
+    const k = g.dataset.key;
+    S[k] = k === 'fps' ? Number(b.dataset.v) : b.dataset.v;
+    if (k === 'theme') { store('mgx-theme', S.theme); applyTheme(true); }
+    persistSettings(); syncSettingsUI();
+  });
+  g.addEventListener('keydown', (e) => {
+    const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key];
+    if (!step) return;
+    e.preventDefault();
+    const radios = [...g.querySelectorAll('[role=radio]')];
+    const i = Math.max(0, radios.indexOf(document.activeElement));
+    const next = radios[(i + step + radios.length) % radios.length];
+    next.focus(); next.click();
+  });
+});
+function openSettings(opener) {
+  lastOpener = opener || $('settingsBtn');
+  syncSettingsUI();
+  settingsEl.hidden = false; settingsEl.classList.remove('leave'); settingsEl.classList.add('enter');
+  $('settingsBtn').setAttribute('aria-expanded', 'true');
+  if (phone.matches) $('scrim').classList.add('show');
+  const first = settingsEl.querySelector('[role=radio][aria-checked=true]'); if (first) first.focus({ preventScroll: true });
+}
+function closeSettings(restore) {
+  if (settingsEl.hidden) return;
+  settingsEl.classList.remove('enter'); settingsEl.classList.add('leave');
+  $('settingsBtn').setAttribute('aria-expanded', 'false'); $('scrim').classList.remove('show');
+  setTimeout(() => { if (settingsEl.classList.contains('leave')) { settingsEl.hidden = true; settingsEl.classList.remove('leave'); } }, 200);
+  if (restore !== false && lastOpener) lastOpener.focus({ preventScroll: true });
+}
+$('settingsBtn').addEventListener('click', function () { settingsEl.hidden ? openSettings(this) : closeSettings(); });
+$('qualityChip').addEventListener('click', function () { openSettings(this); });
+$('settingsClose').addEventListener('click', () => closeSettings());
+$('settingsDone').addEventListener('click', () => closeSettings());
+$('resetSettings').addEventListener('click', () => { const t = S.theme; S = Object.assign({}, DEFAULTS, { theme: t }); persistSettings(); syncSettingsUI(); toast('Settings reset'); });
+$('scrim').addEventListener('click', () => closeSettings());
+document.addEventListener('pointerdown', (e) => {
+  if (settingsEl.hidden || phone.matches) return;
+  if (!settingsEl.contains(e.target) && !e.target.closest('#settingsBtn, #qualityChip')) closeSettings(false);
+});
+
+/* ---------- tabs (below 1000px the code and the preview take turns) ---------- */
+function setView(v) {
+  $('workspace').dataset.view = v;
+  $('tabCode').setAttribute('aria-selected', v === 'code');
+  $('tabPreview').setAttribute('aria-selected', v === 'preview');
+}
+$('tabCode').addEventListener('click', () => setView('code'));
+$('tabPreview').addEventListener('click', () => setView('preview'));
+
+/* ---------- the engine: <manimgx-player>, which runs Python in this page via Pyodide + WebGPU ---------- */
+let player = null;
+function ensurePlayer() {
+  if (player) return player;
+  player = document.createElement('manimgx-player');
+  player.setAttribute('autoplay', '');
+  player.setAttribute('aria-label', 'Animation preview');
+  $('filmEmpty').hidden = true;
+  $('film').append(player);
+  return player;
+}
+function playerStatus() {
+  const p = player && player.shadowRoot && player.shadowRoot.querySelector('p');
+  return p ? p.textContent : '';
+}
+
+/* ---------- progress ---------- */
+let R = { state: 'idle' };
+const progress = $('progress');
+let minimized = false, confirming = false, built = '', poller = null, lastSaid = -1;
+
+function newRun(scenes) {
+  return { state: 'boot', t0: performance.now(), est: estimateSeconds(code.value), scene: selScene, scenes,
+           dur: 0, lastDur: 0, lastChange: performance.now(), tMake0: 0, status: 'Loading Python…', error: null };
+}
+function showProgress() {
+  if (!progress.hidden && !progress.classList.contains('leave')) return;
+  progress.hidden = false; progress.classList.remove('leave'); progress.classList.add('enter');
+}
+function hideProgress() {
+  if (progress.hidden) return;
+  progress.classList.remove('enter'); progress.classList.add('leave');
+  setTimeout(() => { if (progress.classList.contains('leave')) { progress.hidden = true; progress.classList.remove('leave'); } }, 200);
+}
+function setMinimized(v) {
+  minimized = v;
+  if (v) { hideProgress(); $('mini').classList.add('show'); }
+  else { $('mini').classList.remove('show'); showProgress(); }
+  paintStart();
+}
+function pctNow() {
+  if (R.state === 'done') return 100;
+  if (R.state !== 'making') return 0;
+  return Math.min(95, 100 * R.dur / R.est);
+}
+function tick() {
+  if (!player || R.state === 'idle' || R.state === 'error' || R.state === 'cancelled') return;
+  const now = performance.now();
+  const status = playerStatus();
+  const dur = player.duration;
+  R.status = status;
+  if (status && !/^(Loading|Installing)/.test(status)) {            // the player itself failed
+    R.state = 'error'; R.error = { title: status };
+    clearInterval(poller); built = ''; paint(); return;
+  }
+  if (Number.isFinite(dur) && dur > 0) {
+    if (R.state === 'boot' || R.state === 'run') { R.state = 'making'; R.tMake0 = now; built = ''; }
+    if (dur > R.lastDur + 0.02) { R.lastDur = dur; R.lastChange = now; if (R.state === 'done') { R.state = 'making'; built = ''; } }
+    R.dur = dur;
+    if (R.state === 'making' && now - R.lastChange > 1800 && dur > 0.05) { R.state = 'done'; built = ''; R.doneAt = now; if (minimized) setMinimized(false); }
+  } else if (!status && R.state === 'boot') {
+    R.state = 'run'; built = '';
+    R.runAt = now;
+  } else if (R.state === 'run' && now - R.runAt > 30000) {
+    R.state = 'error'; R.error = { title: 'The scene produced no animation. Look at the preview: it shows the error and the line it happened on.' };
+    clearInterval(poller); built = '';
+  }
+  paint();
+  paintStageFoot();
+}
+function paintStageFoot() {
+  if (!player) return;
+  const d = player.duration, t = player.currentTime;
+  $('stageTime').textContent = fmt(t) + ' / ' + (Number.isFinite(d) ? fmt(d) : '0:00');
+}
+function paint() {
+  const st = R.state;
+  progress.className = 'panel progress ' + (st === 'run' || st === 'making' || st === 'boot' ? 'running' : st) + (progress.classList.contains('enter') ? ' enter' : '');
+  const running = st === 'boot' || st === 'run' || st === 'making';
+  const pct = Math.floor(pctNow());
+  $('pMin').hidden = !running; $('pClose').hidden = running;
+  $('miniFill').style.transform = 'scaleX(' + (pct / 100) + ')';
+  $('miniPct').textContent = st === 'making' || st === 'done' ? pct + '%' : '…';
+  const name = R.scene || 'animation';
+  const elapsed = (performance.now() - R.t0) / 1000;
+
+  if (running) {
+    $('pTitle').textContent = st === 'boot' ? 'Starting the engine…' : st === 'run' ? 'Running ' + name + '…' : 'Rendering ' + name;
+    if (built !== 'running') {
+      built = 'running';
+      $('pBody').innerHTML =
+        '<div class="big"><span class="n" id="pNum">—</span><span class="u" id="pUnit"></span></div>' +
+        '<div class="bar indet" role="progressbar" aria-label="Render progress" aria-valuemin="0" aria-valuemax="100" id="pBar"><i id="pFill"></i></div>' +
+        '<p class="sub" id="pSub"></p>' +
+        '<dl class="stats"><div><dt>Elapsed</dt><dd id="sEl">0:00</dd></div><div><dt>Made so far</dt><dd id="sMade">—</dd></div>' +
+        '<div><dt>Estimated length</dt><dd id="sEst">—</dd></div><div><dt>Time left</dt><dd id="sEta">—</dd></div></dl>' +
+        '<div id="pActions"></div>';
+      confirming = false; drawActions();
+    }
+    const bar = $('pBar'), making = st === 'making';
+    bar.classList.toggle('indet', !making);
+    $('pNum').textContent = making ? pct : '—'; $('pUnit').textContent = making ? '%' : '';
+    $('pFill').style.transform = making ? 'scaleX(' + (pct / 100) + ')' : '';
+    bar.setAttribute('aria-valuenow', making ? pct : 0);
+    $('pSub').textContent = st === 'boot'
+      ? (R.status || 'Loading…') + ' The first visit downloads about 26 MB. It is kept for next time.'
+      : st === 'run' ? 'Your code is running. The preview starts as soon as the first frames exist.'
+      : 'Estimated. The preview plays while the rest is still being made.';
+    $('sEl').textContent = fmt(elapsed);
+    $('sMade').textContent = R.dur ? R.dur.toFixed(1) + ' s' : '—';
+    $('sEst').textContent = '~' + Math.round(R.est) + ' s';
+    const speed = making && R.dur > 0.5 ? R.dur / Math.max((performance.now() - R.tMake0) / 1000, 0.1) : 0;
+    $('sEta').textContent = speed ? '~' + fmt(Math.max(R.est - R.dur, 0) / speed) : 'Estimating…';
+    if (making && pct >= lastSaid + 25) { lastSaid = pct - (pct % 25); say('Rendering ' + pct + ' percent'); }
+  } else if (st === 'done') {
+    $('pTitle').textContent = 'Render complete';
+    if (built !== 'done') {
+      built = 'done';
+      $('pBody').innerHTML =
+        '<div class="result"><div class="badge"><svg class="ic"><use href="#i-check"/></svg></div>' +
+        '<h3>Your animation is ready</h3><p>' + R.dur.toFixed(1) + ' s long, made in ' + fmt((R.doneAt - R.t0) / 1000) + ' on your own graphics card.</p></div>' +
+        '<div class="row-actions"><button class="btn primary" id="aPlay"><svg class="ic sm"><use href="#i-play"/></svg>Play</button>' +
+        '<button class="btn" id="aSave"><svg class="ic sm"><use href="#i-download"/></svg>Save video</button></div>' +
+        '<button class="again" id="aAgain">Render again</button>';
+      $('aPlay').onclick = () => { playFromStart(); dismissResult(); };
+      $('aSave').onclick = () => { dismissResult(); recordVideo(); };
+      $('aAgain').onclick = () => { dismissResult(); startRender(); };
+      $('aPlay').focus({ preventScroll: true });
+      say('Render complete. Your animation is ready.');
+    }
+  } else if (st === 'error') {
+    $('pTitle').textContent = 'Render stopped';
+    if (built !== 'error') {
+      built = 'error';
+      $('pBody').innerHTML =
+        '<div class="result bad"><div class="badge"><svg class="ic"><use href="#i-alert"/></svg></div>' +
+        '<h3>Something went wrong</h3><p>' + esc((R.error && R.error.title) || 'The render could not finish.') + '</p></div>' +
+        '<div class="row-actions"><button class="btn primary" id="aRetry">Try again</button><button class="btn" id="aDismiss">Close</button></div>';
+      $('aRetry').onclick = () => { dismissResult(); startRender(); };
+      $('aDismiss').onclick = dismissResult;
+      say('Render failed.');
+    }
+  } else if (st === 'cancelled') {
+    $('pTitle').textContent = 'Render stopped';
+    if (built !== 'cancelled') {
+      built = 'cancelled';
+      $('pBody').innerHTML =
+        '<div class="result neutral"><div class="badge"><svg class="ic"><use href="#i-stop"/></svg></div>' +
+        '<h3>Stopped</h3><p>You can start again whenever you like.</p></div>' +
+        '<div class="row-actions"><button class="btn primary" id="aRestart">Start over</button><button class="btn" id="aDismiss">Close</button></div>';
+      $('aRestart').onclick = () => { dismissResult(); startRender(); };
+      $('aDismiss').onclick = dismissResult;
+    }
+  }
+  document.title = st === 'making' ? pct + '% · ManimGX Studio' : st === 'done' ? 'Done · ManimGX Studio' : 'ManimGX Studio';
+  $('stageMsg').textContent = st === 'done' ? name + ' · ' + R.dur.toFixed(1) + ' s' : running ? 'Rendering ' + name + '…' : st === 'error' ? 'Render stopped' : 'Nothing rendered yet';
+  paintStart();
+}
+function drawActions() {
+  const box = $('pActions'); if (!box) return;
+  if (confirming) {
+    box.innerHTML = '<div class="confirm" role="alertdialog" aria-label="Confirm stop"><p>Stop this render?</p><button class="btn" id="cKeep">Keep going</button><button class="btn stop" id="cStop">Stop</button></div>';
+    $('cKeep').onclick = () => { confirming = false; drawActions(); };
+    $('cStop').onclick = cancelRender; $('cKeep').focus();
+  } else {
+    box.innerHTML = '<div class="row-actions"><button class="btn danger" id="aCancel"><svg class="ic sm"><use href="#i-x"/></svg>Cancel render</button></div>';
+    $('aCancel').onclick = () => { confirming = true; drawActions(); };
+  }
+}
+function dismissResult() {
+  R = { state: 'idle' }; built = ''; hideProgress(); $('mini').classList.remove('show'); minimized = false;
+  document.title = 'ManimGX Studio'; paintStart();
+}
+$('pMin').addEventListener('click', () => setMinimized(true));
+$('pClose').addEventListener('click', dismissResult);
+$('mini').addEventListener('click', () => setMinimized(false));
+
+function paintStart() {
+  const b = $('startBtn'), running = ['boot', 'run', 'making'].includes(R.state);
+  b.querySelector('use').setAttribute('href', running ? '#i-up' : '#i-play');
+  $('startLbl').innerHTML = running ? 'Rendering' + (R.state === 'making' ? ' <span class="pct">' + Math.floor(pctNow()) + '%</span>' : '…') : 'Start Rendering';
+  $('startKbd').hidden = running || phone.matches;
+  b.setAttribute('aria-disabled', (!running && !validity().ok) ? 'true' : 'false');
+  $('saveBtn').setAttribute('aria-disabled', hasFilm() ? 'false' : 'true');
+  $('saveBtn').style.opacity = hasFilm() ? '' : '.55';
+}
+const hasFilm = () => !!player && Number.isFinite(player.duration) && player.duration > 0.05 && !['boot', 'run', 'making'].includes(R.state);
+
+function startRender() {
+  if (['boot', 'run', 'making'].includes(R.state)) { setMinimized(false); return; }
+  const chk = validity();
+  if (!chk.ok) { toast(chk.msg); if (!code.value.trim()) $('empty').hidden = false; else code.focus(); return; }
+  closeSettings(false);
+  R = newRun(chk.scenes); lastScene = selScene;
+  built = ''; lastSaid = -1; confirming = false; minimized = false;
+  $('mini').classList.remove('show');
+  const p = ensurePlayer();
+  p.source = null; p.scene = selScene; p.currentTime = 0;     // one re-make, not two
+  p.source = code.value; p.play();
+  if (narrow.matches) setView('preview');
+  showProgress(); paint(); say('Render started');
+  clearInterval(poller); poller = setInterval(tick, 250);
+}
+function cancelRender() {
+  clearInterval(poller);
+  if (player) { player.remove(); player = null; $('filmEmpty').hidden = false; }     // dropping the film stops it; the engine stays loaded
+  R.state = 'cancelled'; built = ''; paint();
+}
+function playFromStart() {
+  if (!player) return;
+  setView('preview'); player.currentTime = 0; player.play();
+  $('film').scrollIntoView({ block: 'nearest', behavior: reduceMotion.matches ? 'auto' : 'smooth' });
+}
+
+/* ---------- save video: play once at full size and record the canvas ---------- */
+let recAbort = false, lastScene = '';
+async function recordVideo() {
+  if (!hasFilm()) { toast('Render something first, then save it'); return; }
+  if (!window.MediaRecorder) { toast('This browser cannot record video. Try Chrome or Edge.'); return; }
+  const mime = ['video/mp4;codecs=avc1', 'video/webm;codecs=vp9', 'video/webm'].find((t) => MediaRecorder.isTypeSupported(t));
+  if (!mime) { toast('This browser has no video encoder available'); return; }
+  const ext = mime.startsWith('video/mp4') ? 'mp4' : 'webm';
+  const width = S.size === '720' ? 1280 : 1920, fps = S.fps;
+  const film = $('film'), dur = player.duration, name = lastScene || 'animation';
+  const before = { time: player.currentTime, paused: player.paused };
+  recAbort = false;
+  $('rec').classList.add('show'); $('recPct').textContent = '0%'; $('recFill').style.transform = 'scaleX(0)';
+  $('recCancel').focus();
+  say('Saving video. Keep this tab open.');
+  // The player draws at the size it is shown, so show it at the target size underneath the cover.
+  // Scaled down so a 1920px-wide player never widens the page; the canvas still gets the full pixel size.
+  film.classList.add('recording'); film.style.width = (width / devicePixelRatio) + 'px'; film.style.transform = 'scale(.15)'; film.style.transformOrigin = '0 0';
+  /* One pass: play from 0 and record. "direct" records the player's own canvas; "mirror" copies it to a plain 2D
+     canvas every frame first (some browsers deliver no frames from a WebGPU canvas stream). If a pass produces no
+     data after 2.5 s it gives up so the other one can be tried. Returns a Blob, 'empty' or 'aborted'. */
+  async function pass(mode) {
+    player.pause(); player.currentTime = 0; await sleep(300);
+    const canvas = player.shadowRoot.querySelector('canvas');
+    let target = canvas, raf = 0, ctx = null;
+    if (mode === 'mirror') {
+      target = document.createElement('canvas'); target.width = canvas.width; target.height = canvas.height;
+      ctx = target.getContext('2d');
+      const copy = () => { ctx.drawImage(canvas, 0, 0); raf = requestAnimationFrame(copy); };
+      copy();
+    }
+    const stream = target.captureStream(fps);
+    const chunks = []; let bytes = 0, result = null;
+    const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: width > 1500 ? 12e6 : 6e6 });
+    rec.ondataavailable = (e) => { if (e.data.size) { chunks.push(e.data); bytes += e.data.size; } };
+    const stopped = new Promise((r) => { rec.onstop = r; });
+    try {
+      rec.start(500); player.play();
+      const t0 = performance.now();
+      while (!recAbort) {
+        await sleep(200);
+        const t = player.currentTime, p = Math.min(1, t / dur);
+        $('recPct').textContent = Math.floor(p * 100) + '%'; $('recFill').style.transform = 'scaleX(' + p + ')';
+        $('recBar').setAttribute('aria-valuenow', Math.floor(p * 100));
+        if (t >= dur - 0.05 || (player.paused && t > 0.3 && performance.now() - t0 > 1000)) break;
+        if (performance.now() - t0 > 2500 && bytes === 0) { result = 'empty'; break; }
+        if (performance.now() - t0 > (dur + 30) * 1000) break;
+      }
+      await sleep(300);
+    } finally {
+      if (rec.state !== 'inactive') rec.stop();
+      await stopped;
+      cancelAnimationFrame(raf); stream.getTracks().forEach((t) => t.stop()); player.pause();
+    }
+    if (recAbort) return 'aborted';
+    if (result === 'empty' || bytes === 0) return 'empty';
+    return new Blob(chunks, { type: mime.split(';')[0] });
+  }
+  try {
+    await sleep(500);                       // let the player resize to the target size
+    let out = await pass('direct');
+    if (out === 'empty') out = await pass('mirror');
+    if (out === 'empty') toast('This browser produced no video data. Try Chrome or Edge, or use your screen recorder.');
+    else if (out !== 'aborted') {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(out); a.download = name + '.' + ext;
+      document.body.append(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+      toast('Saved ' + name + '.' + ext + ' (' + (out.size / 1e6).toFixed(1) + ' MB)');
+    }
+  } catch (e) {
+    toast('Could not save the video: ' + (e && e.message ? e.message : e));
+  } finally {
+    film.classList.remove('recording'); film.style.width = ''; film.style.transform = ''; film.style.transformOrigin = '';
+    $('rec').classList.remove('show');
+    player.pause(); player.currentTime = before.time;
+  }
+}
+$('recCancel').addEventListener('click', () => { recAbort = true; });
+$('saveBtn').addEventListener('click', () => recordVideo());
+
+/* ---------- start button, shortcuts ---------- */
+$('startBtn').addEventListener('click', () => {
+  if (['boot', 'run', 'making'].includes(R.state)) { setMinimized(false); return; }
+  if (R.state !== 'idle') dismissResult();
+  startRender();
+});
+document.addEventListener('keydown', (e) => {
+  const mod = e.ctrlKey || e.metaKey;
+  if (mod && e.key === 'Enter') { e.preventDefault(); $('startBtn').click(); }
+  else if (mod && (e.key === 'o' || e.key === 'O')) { e.preventDefault(); openPicker(); }
+  else if (e.key === 'Escape') {
+    if (!settingsEl.hidden) closeSettings();
+    else if (['boot', 'run', 'making'].includes(R.state) && !progress.hidden) setMinimized(true);
+  }
+});
+phone.addEventListener('change', () => { paintStart(); if (!settingsEl.hidden) $('scrim').classList.toggle('show', phone.matches); });
+setInterval(() => { if (player && R.state !== 'idle') paintStageFoot(); }, 500);
+
+/* ---------- boot ---------- */
+function setEngine(cls, text) { $('enginePill').className = 'pill ' + cls; $('engineText').textContent = text; }
+function banner(html) { $('bannerText').innerHTML = html; $('banner').hidden = false; }
+async function checkGpu() {
+  if (!navigator.gpu) {
+    gpuOk = false;
+    gpuMsg = 'This browser has no WebGPU, which ManimGX needs to draw.';
+    setEngine('bad', 'WebGPU unavailable');
+    banner('<b>This browser cannot render yet.</b> ManimGX draws with WebGPU. Use Chrome or Edge 113+, Safari 26, or a recent Firefox on Windows. You can still write and share code here.');
+    return;
+  }
+  try {
+    const adapter = await navigator.gpu.requestAdapter();
+    const need = ['float32-blendable', 'depth32float-stencil8'];
+    if (!adapter) throw new Error('no adapter');
+    const missing = need.filter((f) => !adapter.features.has(f));
+    if (missing.length) {
+      gpuOk = false; gpuMsg = 'Your graphics adapter is missing a feature ManimGX needs (' + missing.join(', ') + ').';
+      setEngine('bad', 'Graphics not supported');
+      banner('<b>Your graphics adapter is missing a feature ManimGX needs</b> (' + esc(missing.join(', ')) + '). Try another browser or device, or use the desktop app.');
+      return;
+    }
+    setEngine('ok', 'Ready · runs on your GPU');
+  } catch (e) {
+    gpuOk = false; gpuMsg = 'No usable graphics adapter was found in this browser.';
+    setEngine('bad', 'No graphics adapter');
+    banner('<b>No usable graphics adapter was found.</b> Check that hardware acceleration is on in your browser settings.');
+  }
+}
+
+applyTheme(false); syncSettingsUI();
+const hashed = await loadFromHash();
+if (!hashed) {
+  const saved = store('mgx-web-code');
+  if (saved) setCode(saved, store('mgx-web-name') || 'Untitled.py'); else renderEditor();
+}
+await checkGpu();
+updateStatus(); paintStart();
+window.__mgx = { state: () => R, player: () => player };
+</script>
+</body>
+</html>

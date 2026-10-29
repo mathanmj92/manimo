@@ -1,0 +1,16 @@
+/* My videos dialog */
+.lib-bar { display: flex; align-items: center; gap: 10px; margin: 0 0 12px; }
+.lib-bar .lib-dir { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-2); font-size: 13px; }
+.lib-msg { margin: 0 0 12px; color: var(--text-3); font-size: 13px; }
+.lib-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(212px, 1fr)); gap: 14px; }
+.lib-card { display: flex; flex-direction: column; gap: 8px; padding: 8px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); }
+.lib-thumb { position: relative; aspect-ratio: 16 / 9; border-radius: 8px; background: var(--surface-3) center / contain no-repeat; background-color: #000; outline: 1px solid var(--line); }
+.lib-len { position: absolute; right: 6px; bottom: 6px; padding: 1px 6px; border-radius: 5px; background: rgb(0 0 0 / .7); color: #fff; font: 600 11px/1.5 var(--mono, Consolas, monospace); }
+.lib-len:empty { display: none; }
+.lib-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.lib-info b { font-size: 13.5px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lib-meta { color: var(--text-3); font-size: 12px; }
+.lib-acts { display: flex; gap: 4px; flex-wrap: wrap; }
+.lib-acts .btn { padding: 0 9px; }
+.lib-acts .btn:last-child { margin-left: auto; }
+.lib-acts .btn:last-child span { display: none; }      /* Folder is an icon: the label is its tooltip */

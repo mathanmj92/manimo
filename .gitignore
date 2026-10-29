@@ -1,0 +1,32 @@
+# Build output and caches (the installer goes to GitHub Releases, not the repository)
+build/
+dist/
+**/__pycache__/
+*.py[cod]
+*.part
+
+# Large model files: fetched by tools/Get-Models.ps1
+app/models/*.onnx
+app/models/*.bin
+
+# Node
+node_modules/
+
+# Local tooling and scratch
+.claude/
+*.storyboard*.png
+*.log
+
+# Local test output
+tests/.tmp/
+
+# A reference clip used while studying a style; third-party material is not redistributed
+Calc III in one continuous surface*.mp4
+
+# OS
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# Legacy installer script from before Manimo
+Install ManimGX Studio.bat

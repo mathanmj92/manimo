@@ -1,0 +1,657 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>Manimo</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%233b5bdb'/%3E%3Cpath d='M5.5 20.5c3.2 0 3.2-9 6.5-9s3.2 9 6.5 9 3.2-9 6.5-9' fill='none' stroke='white' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E">
+<script>
+/* Resolve the theme before first paint so there is no flash. */
+(function () {
+  var pref = 'system';
+  try { pref = localStorage.getItem('mgx-theme') || 'system'; } catch (e) {}
+  if (pref === 'dark') pref = 'chalk'; else if (pref === 'light') pref = 'paper';
+  if (pref === 'system') pref = matchMedia('(prefers-color-scheme: light)').matches ? 'paper' : 'chalk';
+  if (['chalk', 'blueprint', 'paper', 'mint'].indexOf(pref) < 0) pref = 'chalk';
+  document.documentElement.dataset.look = pref;
+  document.documentElement.dataset.theme = (pref === 'paper' || pref === 'mint') ? 'light' : 'dark';
+})();
+</script>
+<link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="assets/app.css">
+<link rel="stylesheet" href="assets/prompt.css">
+<link rel="stylesheet" href="assets/library.css">
+</head>
+<body>
+
+<div class="splash" id="splash" aria-hidden="true">
+  <div class="splash-in">
+    <svg class="splash-mark" viewBox="0 0 32 32"><rect width="32" height="32" rx="9" fill="var(--accent)"/><path class="draw" d="M5.5 20.5c3.2 0 3.2-9 6.5-9s3.2 9 6.5 9 3.2-9 6.5-9" fill="none" stroke="var(--on-accent)" stroke-width="2.4" stroke-linecap="round"/><circle class="dot" cx="25.5" cy="11.5" r="2.2" fill="var(--on-accent)"/></svg>
+    <div class="splash-name">Manimo</div>
+    <div class="splash-tag">Math, in motion.</div>
+    <div class="splash-bar"><i></i></div>
+  </div>
+</div>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L8.5 4.64A1 1 0 0 0 7 5.5z"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 7.5A1.5 1.5 0 0 1 4.5 6h4.2a1.5 1.5 0 0 1 1.1.5l1.2 1.3a1.5 1.5 0 0 0 1.1.5h7.4A1.5 1.5 0 0 1 21 9.8v7.7a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5z"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-music" viewBox="0 0 24 24"><path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/></symbol>
+  <symbol id="i-camera" viewBox="0 0 24 24"><rect x="3" y="6.5" width="12.5" height="11" rx="2.5"/><path d="m15.5 11 5-3v8l-5-3"/></symbol>
+  <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></symbol>
+  <symbol id="i-scissors" viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><path d="M8 7.5 20 18M8 16.5 20 6"/></symbol>
+  <symbol id="i-trim-l" viewBox="0 0 24 24"><path d="M5 4v16M9 12h11M13 8l-4 4 4 4"/></symbol>
+  <symbol id="i-trim-r" viewBox="0 0 24 24"><path d="M19 4v16M15 12H4M11 8l4 4-4 4"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6.5 7l1 13h9l1-13M10 11v6M14 11v6"/></symbol>
+  <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></symbol>
+  <symbol id="i-redo" viewBox="0 0 24 24"><path d="m15 14 5-5-5-5"/><path d="M20 9H10a6 6 0 0 0 0 12h3"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4.5v15l12-7.5z"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24"><path d="M8 5v14M16 5v14"/></symbol>
+  <symbol id="i-skip-back" viewBox="0 0 24 24"><path d="M6 5v14M19 5v14L9 12z"/></symbol>
+  <symbol id="i-skip-fwd" viewBox="0 0 24 24"><path d="M18 5v14M5 5v14l10-7z"/></symbol>
+  <symbol id="i-fade" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="2"/><path d="M4 9l16 0M4 13l9 0M4 17l5 0"/></symbol>
+  <symbol id="i-export" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 20h14"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></symbol><symbol id="i-more" viewBox="0 0 24 24"><circle cx="5.5" cy="12" r="1.7" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.7" fill="currentColor" stroke="none"/><circle cx="18.5" cy="12" r="1.7" fill="currentColor" stroke="none"/></symbol><symbol id="i-panel-l" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></symbol><symbol id="i-panel-r" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+  <symbol id="i-code" viewBox="0 0 24 24"><path d="m8 8-4 4 4 4M16 8l4 4-4 4M14 5l-4 14"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M5 5.5A2.5 2.5 0 0 1 7.5 3H19v15H7.5A2.5 2.5 0 0 0 5 20.5z"/><path d="M5 20.5A2.5 2.5 0 0 0 7.5 23H19v-5"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H7.5A1.5 1.5 0 0 0 6 4.5v15A1.5 1.5 0 0 0 7.5 21h9a1.5 1.5 0 0 0 1.5-1.5V7z"/><path d="M14 3v4h4"/><path d="m10 13-1.5 1.5L10 16M14 13l1.5 1.5L14 16"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 3v1.5M12 19.5V21M3 12h1.5M19.5 12H21M5.6 5.6l1.1 1.1M17.3 17.3l1.1 1.1M5.6 18.4l1.1-1.1M17.3 6.7l1.1-1.1"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path class="tick" d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></symbol>
+  <symbol id="i-film" viewBox="0 0 24 24"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="m16 10.5 5-3v9l-5-3"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 4 3 19.5h18z"/><path d="M12 10v4.5M12 17.2v.01"/></symbol>
+  <symbol id="i-clip" viewBox="0 0 24 24"><rect x="6" y="5" width="12" height="16" rx="2"/><path d="M9 5V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1"/></symbol>
+  <symbol id="i-shapes" viewBox="0 0 24 24"><circle cx="7.5" cy="16.5" r="3.5"/><path d="M14.5 4.5 19 12h-9z"/><rect x="14" y="14" width="6" height="6" rx="1"/></symbol>
+  <symbol id="i-min" viewBox="0 0 24 24"><path d="M6 12h12"/></symbol>
+  <symbol id="i-up" viewBox="0 0 24 24"><path d="m6 15 6-6 6 6"/></symbol>
+  <symbol id="i-cpu" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/><rect x="10" y="10" width="4" height="4" rx=".5"/><path d="M9 3v3M15 3v3M9 18v3M15 18v3M3 9h3M3 15h3M18 9h3M18 15h3"/></symbol>
+  <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 3 5 13.5h6L10 21l8-10.5h-6z"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M5 7h14M10 7V5h4v2M7 7l1 12h8l1-12"/></symbol>
+  <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></symbol>
+  <symbol id="i-present" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M12 16v4M8 20h8"/></symbol>
+  <symbol id="i-save" viewBox="0 0 24 24"><path d="M5 4h11l3 3v13H5z"/><path d="M8 4v5h7V4M8 20v-6h8v6"/></symbol>
+<symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM18.5 15l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/></symbol><symbol id="i-send" viewBox="0 0 24 24"><path d="M4 12 20 4l-4 16-4.5-6.5zM11.5 13.5 20 4"/></symbol><symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.4a2.5 2.5 0 1 1 3.4 2.3c-.7.4-1 1-1 1.8M12 17v.01"/></symbol><symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8v.01"/></symbol><symbol id="i-external" viewBox="0 0 24 24"><path d="M14 5h5v5M19 5l-8 8M18 14v4a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h4"/></symbol><symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol><symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 19h14"/></symbol><symbol id="i-wave" viewBox="0 0 120 56"><path d="M4 28c10 0 10-22 20-22s10 44 20 44 10-44 20-44 10 44 20 44 10-22 16-22" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><circle cx="108" cy="28" r="5" fill="var(--accent)" stroke="none"/></symbol></svg>
+
+<div class="app" id="app">
+  <header class="titlebar">
+    <div class="brand">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="9" fill="var(--accent)"/><path d="M5.5 20.5c3.2 0 3.2-9 6.5-9s3.2 9 6.5 9 3.2-9 6.5-9" fill="none" stroke="var(--on-accent)" stroke-width="2.4" stroke-linecap="round"/><circle cx="25.5" cy="11.5" r="2.2" fill="var(--on-accent)"/></svg>
+      <span>Manimo</span>
+    </div>
+    <nav class="menubar" role="menubar" aria-label="Main menu">
+      <button class="menubtn" role="menuitem" aria-haspopup="menu" aria-expanded="false" data-menu="file">File</button>
+      <button class="menubtn" role="menuitem" aria-haspopup="menu" aria-expanded="false" data-menu="edit">Edit</button>
+      <button class="menubtn" role="menuitem" aria-haspopup="menu" aria-expanded="false" data-menu="session">Session</button>
+      <button class="menubtn" role="menuitem" aria-haspopup="menu" aria-expanded="false" data-menu="help">Help</button>
+    </nav>
+    <div class="spacer"></div>
+    <div class="pill engine-pill" id="enginePill" role="status"><i></i><span class="t" id="engineText">Checking…</span></div>
+    <button class="icon-btn" id="themeBtn" aria-label="Switch to light mode" title="Toggle light / dark"><svg class="ic"><use id="themeIcon" href="#i-sun"/></svg></button>
+  </header>
+
+  <div class="toolbar" role="toolbar" aria-label="Render">
+    <div class="go">
+      <button class="tb-icon tip" id="projBtn" data-tip="Project: the scenes and videos of a lesson" aria-label="Project" aria-pressed="false"><svg class="ic"><use href="#i-folder"/></svg></button>
+      <button class="btn primary lg" id="startBtn"><svg class="ic"><use href="#i-play"/></svg><span id="startLbl">Start Rendering</span><kbd id="startKbd">Ctrl&nbsp;&#8629;</kbd></button>
+      <button class="tb-icon tip" id="presentBtn" data-tip="Present: play this scene as slides" aria-label="Present"><svg class="ic"><use href="#i-present"/></svg></button>
+    </div>
+    <span class="vr"></span>
+    <label class="chip" id="sceneChip" hidden><span class="k">Scene</span><select id="sceneSel" aria-label="Scene to render"></select></label>
+    <button class="chip" id="qualityChip" title="Quality and engine settings"><svg class="ic sm"><use href="#i-film"/></svg><span class="lbl" id="qualityLbl">1080p</span></button>
+    <button class="chip folder" id="folderChip" title="Choose output folder"><svg class="ic sm"><use href="#i-folder"/></svg><span class="lbl" id="folderLbl">Videos</span></button>
+    <button class="icon-btn tip" id="openFolderBtn" data-tip="Open the output folder" aria-label="Open output folder"><svg class="ic"><use href="#i-external"/></svg></button>
+    <span class="engine-tag" id="engineTag"></span>
+    <div class="spacer"></div>
+    <div class="file-chip" id="fileChip" title="Current file"><svg class="ic sm"><use href="#i-file"/></svg><span id="fileName">Untitled.py</span></div>
+    <button class="icon-btn tip" id="openBtn" data-tip="Open a .py file (Ctrl+O)" aria-label="Open file"><svg class="ic"><use href="#i-file"/></svg></button>
+    <button class="icon-btn tip" id="saveBtn" data-tip="Save (Ctrl+S)" aria-label="Save"><svg class="ic"><use href="#i-save"/></svg></button>
+    <span class="vr"></span>
+    <button class="btn accent tb-text tip" id="composeBtn" data-tip="Compose: edit your videos into one lesson" aria-label="Compose"><svg class="ic sm"><use href="#i-film"/></svg><span>Compose</span></button>
+    <button class="tb-icon tip" id="learnBtn" data-tip="Learn: commands, tips and videos" aria-label="Learn"><svg class="ic"><use href="#i-book"/></svg></button>
+    <button class="tb-icon tip" id="aiBtn" data-tip="Ask AI (Ctrl+L)" aria-label="Ask AI" aria-pressed="false"><svg class="ic"><use href="#i-spark"/></svg></button>
+    <button class="tb-icon tip tip-right" id="settingsBtn" data-tip="Settings" aria-label="Settings" aria-haspopup="dialog" aria-expanded="false" aria-controls="settings"><svg class="ic"><use href="#i-sliders"/></svg></button>
+  </div>
+  <main class="workspace" id="workspace" data-view="code">
+    <div class="seg tabs" role="tablist" aria-label="View">
+      <button role="tab" id="tabCode" aria-selected="true">Code</button>
+      <button role="tab" id="tabPreview" aria-selected="false">Preview</button>
+    </div>
+
+
+    <aside class="side side-proj" id="projSide" aria-label="Project" hidden>
+      <div class="side-head"><svg class="ic sm"><use href="#i-folder"/></svg><span>Project</span><span class="spacer"></span>
+        <button class="icon-btn sm tip tip-right" id="projClose" data-tip="Collapse" aria-label="Collapse the project panel"><svg class="ic"><use href="#i-panel-l"/></svg></button></div>
+      <div class="proj" id="projectPane"></div>
+    </aside>
+
+    <div class="stage-split" id="stageSplit">
+    <section class="left" id="leftCol">
+      <section class="editor" aria-label="Animation code">
+        <div class="pane-head">
+          <span class="title" id="editorTitle">Code</span>
+          <span class="spacer"></span>
+          <button class="btn ghost" id="pasteBtn" title="Paste from clipboard"><svg class="ic sm"><use href="#i-clip"/></svg><span class="t">Paste</span></button>
+          <button class="btn ghost" id="exampleBtn" title="Load an example"><svg class="ic sm"><use href="#i-shapes"/></svg><span class="t">Example</span></button>
+          <button class="btn ghost" id="clearBtn" title="Clear the editor"><svg class="ic sm"><use href="#i-trash"/></svg><span class="t">Clear</span></button>
+        </div>
+        <div class="code">
+          <div class="cm-host" id="cmHost"></div>
+          <div class="empty" id="empty">
+            <div class="empty-inner">
+              <svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="9" fill="var(--accent)"/><path d="M5.5 20.5c3.2 0 3.2-9 6.5-9s3.2 9 6.5 9 3.2-9 6.5-9" fill="none" stroke="var(--on-accent)" stroke-width="2.4" stroke-linecap="round"/><circle cx="25.5" cy="11.5" r="2.2" fill="var(--on-accent)"/></svg>
+              <h1>Turn your animation code into video</h1>
+              <p>Paste your code, open a <b>.py</b> file, or start from an example. Then press Start Rendering.</p>
+              <div class="actions">
+                <button class="btn primary" id="emptyPaste"><svg class="ic"><use href="#i-clip"/></svg>Paste code</button>
+                <button class="btn" id="emptyOpen"><svg class="ic"><use href="#i-file"/></svg>Open .py file</button>
+                <button class="btn" id="emptyExample"><svg class="ic"><use href="#i-shapes"/></svg>Try an example</button>
+              </div>
+              <div class="tip">New here? Open <b>Help → How to use</b>. You can also drag a file onto this window.</div>
+            </div>
+          </div>
+        </div>
+        <div class="pane-foot">
+          <span class="msg" id="sceneMsg">No code yet</span>
+          <span class="pos" id="pos">Ln 1, Col 1</span>
+        </div>
+      </section>
+
+      <section class="dock" id="dock" data-state="idle" aria-label="Render progress" aria-live="off"></section>
+    </section>
+
+
+    <div class="splitter" id="splitter" role="separator" aria-orientation="vertical" aria-label="Resize code and preview" tabindex="0"></div>
+
+
+    <section class="right" id="rightCol" aria-label="Preview">
+      <div class="pane-head">
+        <span class="title">Preview</span>
+        <select id="previewSel" aria-label="Rendered file" hidden></select>
+        <span class="spacer"></span>
+        <span id="previewBtns">
+          <button class="btn ghost" id="editVidBtn" title="Trim, join, add music or your voice in the video editor" hidden><svg class="ic sm"><use href="#i-scissors"/></svg><span class="t">Edit video</span></button>
+          <button class="btn ghost" id="scriptBtn" title="List what the scene says, with times"><svg class="ic sm"><use href="#i-wave"/></svg><span class="t">Script</span></button>
+          <button class="btn ghost" id="recToggle" title="Record your voice (and camera) over this video" hidden><svg class="ic sm"><use href="#i-wave"/></svg><span class="t">Narrate</span></button>
+          <button class="btn ghost" id="previewOpen" title="Open in your video player" hidden><svg class="ic sm"><use href="#i-external"/></svg><span class="t">Open</span></button>
+          <button class="btn ghost" id="previewFolder" title="Show in the output folder" hidden><svg class="ic sm"><use href="#i-folder"/></svg><span class="t">Folder</span></button>
+        </span>
+      </div>
+      <div class="stage-body" id="stageBody">
+        <div class="film" id="film">
+          <div class="film-empty" id="filmEmpty"><svg><use href="#i-wave"/></svg><b>Your video appears here</b><span>Press Start Rendering. When it finishes, it plays right here.</span><button class="linkbtn" id="filmLib">Browse earlier videos</button></div>
+        </div>
+        <div class="rec" id="rec" hidden>
+          <div class="rec-row">
+            <label class="chk"><input type="checkbox" id="recMic"> Microphone</label>
+            <span class="meter" aria-hidden="true"><i id="recLevel"></i></span>
+            <label class="chk"><input type="checkbox" id="recCam"> Camera</label>
+            <video id="recCamPrev" muted playsinline hidden></video>
+          </div>
+          <div class="rec-row">
+            <button class="btn primary" id="recGo" disabled>Record</button>
+            <span class="rec-time" id="recTime">0:00</span>
+            <button class="btn" id="recSave" hidden>Save with my voice</button>
+            <button class="btn ghost" id="recRetry" hidden>Discard</button>
+            <button class="btn ghost" id="recClose" aria-label="Close recorder">Close</button>
+          </div>
+          <p class="help" id="recMsg" role="status">Turn on the microphone, press Record, and talk while the video plays. Wear headphones if the video has sound.</p>
+        </div>
+      </div>
+      <div class="beats" id="beats" hidden aria-label="Parts of this video"><span class="beats-k">Parts</span><div class="beats-list" id="beatsList"></div></div>
+      <div class="pane-foot"><span id="previewMsg">Nothing rendered yet</span></div>
+    </section>
+    </div>
+
+    <aside class="side side-ai" id="aiSide" aria-label="AI assistant" hidden>
+      <div class="side-head"><svg class="ic sm"><use href="#i-spark"/></svg><span>Assistant</span><span class="spacer"></span>
+        <button class="icon-btn sm tip" id="aiNew" data-tip="New chat" aria-label="Start a new conversation"><svg class="ic"><use href="#i-plus"/></svg></button>
+        <button class="icon-btn sm tip" id="aiSettingsBtn" data-tip="AI settings" aria-label="AI settings"><svg class="ic"><use href="#i-sliders"/></svg></button>
+        <button class="icon-btn sm tip tip-right" id="aiClose" data-tip="Collapse" aria-label="Collapse the assistant"><svg class="ic"><use href="#i-panel-r"/></svg></button></div>
+      <div class="assist" id="assist">
+        <div class="chat-log" id="chatLog" aria-live="polite"></div>
+        <div class="chat-setup" id="aiSetup" hidden></div>
+        <div class="chat-compose" id="chatCompose">
+          <div class="chat-quick" id="chatQuick">
+            <button class="chip sm" data-q="new">New scene</button>
+            <button class="chip sm" data-q="explain">Explain this code</button>
+            <button class="chip sm" data-q="fix">Fix the last error</button>
+            <button class="chip sm" data-q="improve">Improve the layout</button>
+            <button class="chip sm" data-q="prompt" title="Build a lesson prompt, or pick one from the library">Lesson prompt</button>
+          </div>
+          <div class="chat-box">
+            <textarea id="chatInput" rows="2" placeholder="Describe the animation you want, or ask for a change…" aria-label="Message to the assistant"></textarea>
+            <button class="btn primary" id="chatSend" aria-label="Send"><svg class="ic"><use href="#i-send"/></svg></button>
+          </div>
+          <div class="chat-opts">
+            <label class="chk"><input type="checkbox" id="useCode" checked> Use my code</label>
+            <label class="chip sm" id="aiEngineChip"><span class="k">Write for</span><select id="aiEngine" aria-label="Engine to write for"><option value="manimgx">ManimGX</option><option value="manim">Manim</option></select></label>
+            <span class="spacer"></span><span class="chat-model" id="chatModel"></span>
+          </div>
+        </div>
+      </div>
+      <div class="side-foot" id="aiFoot"></div>
+    </aside>
+  </main>
+</div>
+
+<!-- New project -->
+<dialog class="dlg" id="projNewDlg" aria-labelledby="projNewTitle">
+  <div class="dlg-head"><h2 id="projNewTitle">New project</h2><button class="icon-btn" data-close aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button></div>
+  <div class="dlg-body">
+    <p style="margin:0;color:var(--text-2)">A project is one folder that keeps every scene, video and recording of a lesson together, so you can edit them into one video.</p>
+    <div class="field"><label class="lbl" for="projName">Name</label><input class="input" id="projName" type="text" maxlength="60" placeholder="My lesson" autocomplete="off"></div>
+    <div class="field"><span class="lbl">Create it in</span><div class="path-row"><div class="path" id="projParent"></div><button class="btn" id="projPick">Change…</button></div></div>
+    <label class="chk" id="projRecentRow" hidden><input type="checkbox" id="projRecent" checked> <span id="projRecentLbl">Add my recent videos to it</span></label>
+    <p class="help" id="projNewMsg" role="status"></p>
+  </div>
+  <div class="dlg-foot"><span class="spacer"></span><button class="btn" data-close>Cancel</button><button class="btn primary" id="projCreate">Create project</button></div>
+</dialog>
+
+<!-- Compose: the video editor pop-up -->
+<div class="vedit" id="vedit" role="dialog" aria-modal="true" aria-labelledby="veTitle" hidden>
+ <div class="ve-win">
+  <header class="ve-bar">
+    <svg class="ic ve-logo"><use href="#i-film"/></svg><h2 id="veTitle">Compose</h2><span class="ve-proj" id="veProj"></span>
+    <span class="spacer"></span>
+    <button class="ve-ib" id="veUndo" title="Undo (Ctrl+Z)" aria-label="Undo"><svg class="ic"><use href="#i-undo"/></svg></button>
+    <button class="ve-ib" id="veRedo" title="Redo (Ctrl+Y)" aria-label="Redo"><svg class="ic"><use href="#i-redo"/></svg></button>
+    <span class="ve-sep"></span>
+    <label class="chip"><span class="k">Share for</span><select id="veShare" aria-label="Share for"><option value="">Custom</option><option value="yt">YouTube (wide)</option><option value="reel">Reels, Shorts, TikTok (tall)</option><option value="post">Instagram post (square)</option><option value="chat">WhatsApp (small file)</option></select></label>
+    <label class="chip"><span class="k">Shape</span><select id="veShape" aria-label="Video shape"><option value="auto">Same as my scenes</option><option value="16:9">Wide 16:9</option><option value="9:16">Tall 9:16</option><option value="1:1">Square 1:1</option><option value="4:3">Classic 4:3</option><option value="3:4">Portrait 3:4</option></select></label>
+    <label class="chip"><span class="k">Quality</span><select id="vePreset" aria-label="Export quality"><option value="high">1080p</option><option value="small">720p</option><option value="draft">480p draft</option><option value="share">Small file (720p)</option><option value="audio">Audio only</option></select></label>
+    <label class="chip chk" title="Put the words of your scenes on the picture"><input type="checkbox" id="veCaps"><span>Captions</span></label>
+    <button class="btn primary" id="veExport"><svg class="ic sm"><use href="#i-export"/></svg>Export video</button>
+    <button class="icon-btn" id="veClose" aria-label="Close Compose" title="Close (Esc)"><svg class="ic"><use href="#i-x"/></svg></button>
+  </header>
+  <div class="ve-tools" role="toolbar" aria-label="Editing tools">
+    <div class="ve-grp" role="group" aria-label="Add">
+      <button class="ve-tool" id="veAddVideo" title="Add a video to the timeline"><svg class="ic"><use href="#i-plus"/></svg><span>Video</span></button>
+      <button class="ve-tool" id="veAddMusic" title="Add background music"><svg class="ic"><use href="#i-music"/></svg><span>Music</span></button>
+      <button class="ve-tool" id="veAddCam" title="Add yourself on camera"><svg class="ic"><use href="#i-camera"/></svg><span>Camera</span></button>
+      <button class="ve-tool" id="veRec" title="Record a voice-over while the video plays"><svg class="ic"><use href="#i-mic"/></svg><span>Voice-over</span></button>
+      <button class="ve-tool" id="veSpeak" title="Type words and let a voice read them"><svg class="ic"><use href="#i-wave"/></svg><span>Speak text</span></button>
+    </div>
+    <span class="ve-sep"></span>
+    <div class="ve-grp" role="group" aria-label="Edit">
+      <button class="ve-tool" id="veSplit" title="Cut the clip at the playhead (S)"><svg class="ic"><use href="#i-scissors"/></svg><span>Cut</span></button>
+      <button class="ve-tool" id="veTrimL" title="Trim the start of the clip to the playhead ( [ )"><svg class="ic"><use href="#i-trim-l"/></svg><span>Trim start</span></button>
+      <button class="ve-tool" id="veTrimR" title="Trim the end of the clip to the playhead ( ] )"><svg class="ic"><use href="#i-trim-r"/></svg><span>Trim end</span></button>
+      <button class="ve-tool" id="veDup" title="Duplicate the selected clip"><svg class="ic"><use href="#i-copy"/></svg><span>Duplicate</span></button>
+      <button class="ve-tool" id="veFade" title="Fade the selected clip in and out"><svg class="ic"><use href="#i-fade"/></svg><span>Fade</span></button>
+      <button class="ve-tool danger" id="veDel" title="Delete the selected item (Delete)"><svg class="ic"><use href="#i-trash"/></svg><span>Delete</span></button>
+    </div>
+    <span class="ve-sep"></span>
+    <div class="ve-grp" role="group" aria-label="Share">
+      <button class="ve-tool" id="veCover" title="Save the picture at the playhead as a cover image"><svg class="ic"><use href="#i-camera"/></svg><span>Cover picture</span></button>
+    </div>
+    <span class="spacer"></span>
+    <button class="btn sm" id="veNew" hidden></button>
+  </div>
+  <div class="ve-main">
+    <section class="ve-stage" aria-label="Preview">
+      <div class="ve-screen" id="veScreen">
+        <div class="ve-frame" id="veFrame"><video id="veVideo" playsinline></video><video id="veCam" class="ve-cam" playsinline hidden></video></div>
+        <div class="ve-empty" id="veEmpty"><svg class="ic"><use href="#i-film"/></svg><b>Your timeline is empty</b><span>Press <i>Video</i> above to add the scenes you rendered.</span></div>
+      </div>
+      <div class="ve-transport">
+        <button class="ve-ib" id="veBack" aria-label="Go to the start" title="Go to the start"><svg class="ic"><use href="#i-skip-back"/></svg></button>
+        <button class="ve-ib big" id="vePlay" aria-label="Play" title="Play / pause (Space)"><svg class="ic"><use id="vePlayIcon" href="#i-play"/></svg></button>
+        <button class="ve-ib" id="veFwd" aria-label="Next clip" title="Next clip"><svg class="ic"><use href="#i-skip-fwd"/></svg></button>
+        <span class="ve-time" id="veTime">0:00 / 0:00</span>
+        <span class="spacer"></span>
+        <label class="ve-zoom">Zoom<input type="range" id="veZoom" min="12" max="160" value="48" aria-label="Timeline zoom"></label>
+      </div>
+    </section>
+    <aside class="ve-side" aria-label="Selected item">
+      <div class="ve-insp" id="veInsp"></div>
+      <div class="ve-exp" id="veExp" hidden></div>
+    </aside>
+  </div>
+  <section class="ve-timeline" aria-label="Timeline">
+    <div class="ve-scroll" id="veScroll">
+      <div class="ve-tl" id="veTl">
+        <div class="ve-row ve-row-ruler"><div class="ve-lbl"></div><div class="ve-ruler" id="veRuler"></div></div>
+        <div class="ve-row"><div class="ve-lbl"><svg class="ic sm"><use href="#i-film"/></svg>Video</div><div class="ve-lane" id="veLaneV"></div></div>
+        <div class="ve-row"><div class="ve-lbl"><svg class="ic sm"><use href="#i-camera"/></svg>Camera</div><div class="ve-lane" id="veLaneK"></div></div>
+        <div class="ve-row"><div class="ve-lbl"><svg class="ic sm"><use href="#i-mic"/></svg>Voice</div><div class="ve-lane" id="veLaneA"></div></div>
+        <div class="ve-row"><div class="ve-lbl"><svg class="ic sm"><use href="#i-music"/></svg>Music</div><div class="ve-lane" id="veLaneM"></div></div>
+        <div class="ve-head" id="veHead"></div>
+      </div>
+    </div>
+  </section>
+ </div>
+ <div class="menu ve-menu" id="veMenu" role="menu" hidden></div>
+</div>
+<!-- Quick settings (the gear's first click) -->
+<div class="quick" id="quick" role="dialog" aria-label="Quick settings" hidden>
+  <h2 class="quick-h">Quick settings</h2>
+  <div class="field">
+    <span class="lbl" id="quickQLbl">Video quality</span>
+    <div class="seg" role="radiogroup" aria-labelledby="quickQLbl" data-key="quality">
+      <button role="radio" data-v="l">480p</button><button role="radio" data-v="m">720p</button><button role="radio" data-v="h">1080p</button><button role="radio" data-v="k">4K</button>
+    </div>
+    <p class="help" id="quickQHelp"></p>
+  </div>
+  <div class="field">
+    <label class="lbl" for="quickShape">Video shape</label>
+    <select class="input" id="quickShape" aria-label="Video shape"><option value="auto">Same as my code</option><option value="16:9">Wide 16:9</option><option value="9:16">Tall 9:16</option><option value="1:1">Square 1:1</option><option value="4:3">Classic 4:3</option><option value="3:4">Portrait 3:4</option></select>
+  </div>
+  <div class="field" id="quickVoiceRow">
+    <label class="lbl" for="quickVoice">Narration voice</label>
+    <select class="input" id="quickVoice"></select>
+  </div>
+  <div class="field">
+    <span class="lbl">AI helper</span>
+    <div class="quick-row"><span id="quickAI">Not connected</span><button class="btn sm" id="quickAIBtn">Change</button></div>
+  </div>
+  <div class="quick-foot"><button class="linkbtn" id="quickMore">All settings…</button><button class="linkbtn" id="quickLearn">Learn and commands</button></div>
+</div>
+
+<!-- Settings: a pop-up with one topic at a time -->
+<aside class="panel settings" id="settings" role="dialog" aria-modal="true" aria-labelledby="settingsTitle" hidden>
+  <div class="panel-head">
+    <h2 id="settingsTitle">Settings</h2>
+    <button class="icon-btn" id="settingsClose" aria-label="Close settings"><svg class="ic"><use href="#i-x"/></svg></button>
+  </div>
+  <div class="set-wrap">
+    <nav class="set-nav" id="setNav" aria-label="Settings topics">
+      <button data-tab="video" aria-selected="true">Video</button>
+      <button data-tab="voice" aria-selected="false">Voice</button>
+      <button data-tab="ai" aria-selected="false">AI helper</button>
+      <button data-tab="files" aria-selected="false">Files and engines</button>
+      <button data-tab="look" aria-selected="false">Look</button>
+    </nav>
+    <div class="set-body">
+      <section data-pane="video">
+        <fieldset class="field">
+          <legend>Quality</legend>
+          <div class="seg" role="radiogroup" aria-label="Quality" data-key="quality">
+            <button role="radio" data-v="l">480p</button><button role="radio" data-v="m">720p</button><button role="radio" data-v="h">1080p</button><button role="radio" data-v="k">4K</button>
+          </div>
+          <p class="help" id="qualityHelp"></p>
+        </fieldset>
+        <fieldset class="field">
+          <legend>Video shape</legend>
+          <div class="seg" role="radiogroup" aria-label="Video shape" data-key="shape">
+            <button role="radio" data-v="auto">Same as my code</button><button role="radio" data-v="16:9">Wide 16:9</button><button role="radio" data-v="9:16">Tall 9:16</button><button role="radio" data-v="1:1">Square</button><button role="radio" data-v="4:3">4:3</button>
+          </div>
+          <p class="help">Wide suits lessons on a screen, tall suits phone reels, square suits social posts. "Same as my code" follows the size your scene asks for, and is wide if it asks for none.</p>
+        </fieldset>
+        <fieldset class="field">
+          <legend>Frame rate</legend>
+          <div class="seg" role="radiogroup" aria-label="Frame rate" data-key="fps">
+            <button role="radio" data-v="auto">Auto</button><button role="radio" data-v="30">30 fps</button><button role="radio" data-v="60">60 fps</button>
+          </div>
+        </fieldset>
+        <fieldset class="field">
+          <legend>Video encoding (ManimGX)</legend>
+          <div role="radiogroup" aria-label="Video encoding" data-key="encoding">
+            <button class="opt" role="radio" data-v="fast"><svg class="ic"><use href="#i-bolt"/></svg><div><b>Fastest</b><span>Quickest to finish. Larger file.</span></div></button>
+            <button class="opt" role="radio" data-v="balanced"><svg class="ic"><use href="#i-film"/></svg><div><b>Balanced</b><span>Good size and speed. Recommended.</span></div></button>
+            <button class="opt" role="radio" data-v="small"><svg class="ic"><use href="#i-cpu"/></svg><div><b>Smallest file</b><span>Takes longer. Best for sharing.</span></div></button>
+          </div>
+        </fieldset>
+      </section>
+      <section data-pane="voice" hidden>
+        <div class="field"><label class="lbl" for="setVoice">Narration voice</label><select class="input" id="setVoice"></select>
+          <p class="help" id="setVoiceNote">Used for every self.say and voiceover line. It runs on this PC and needs no internet.</p></div>
+        <div class="field"><label class="lbl" for="setSpeed">Speaking speed</label>
+          <select class="input" id="setSpeed"><option value="0.9">Slower</option><option value="1">Normal</option><option value="1.15">Faster</option></select></div>
+        <div class="field"><button class="btn" id="setVoiceTry">Open the script and hear it</button></div>
+      </section>
+      <section data-pane="ai" hidden>
+        <div class="field"><span class="lbl">Connected to</span>
+          <div class="path-row"><div class="path" id="setAIName">Not connected</div><button class="btn" id="setAIBtn">Change…</button></div>
+          <p class="help">Choose an assistant already on this PC (no key needed), a Claude API key, or another model.</p></div>
+      </section>
+      <section data-pane="files" hidden>
+        <div class="field">
+          <span class="lbl">Save videos to</span>
+          <div class="path-row"><div class="path" id="pathText"></div><button class="btn" id="changeFolder">Change…</button></div>
+        </div>
+        <div class="field">
+          <span class="lbl">Engines</span>
+          <div class="engine-row"><div class="nm"><b>ManimGX</b><span id="engGx">Checking…</span></div></div>
+          <div class="engine-row"><div class="nm"><b>Manim (Community Edition)</b><span id="engCe">Checking…</span></div><button class="btn sm" id="addManim"><svg class="ic sm"><use href="#i-download"/></svg>Add Manim</button></div>
+          <div class="engine-row"><div class="nm"><b>LaTeX (for MathTex and Tex in Manim)</b><span id="engTex">Checking…</span></div></div>
+          <p class="help">Manimo picks the engine from the first import line of your code. Adding Manim from here needs an internet connection once. To get Manim and LaTeX with no download at all, run the Manimo installer again and tick <i>Manim Community Edition and LaTeX</i>.</p>
+        </div>
+      </section>
+      <section data-pane="look" hidden>
+        <fieldset class="field">
+          <legend>Look</legend>
+          <div class="looks" role="radiogroup" aria-label="Look" data-key="theme">
+            <button role="radio" data-v="system" class="look" data-look="system"><i></i><b>Match Windows</b><span>Chalkboard or Paper</span></button>
+            <button role="radio" data-v="chalk" class="look" data-look="chalk"><i></i><b>Chalkboard</b><span>Dark, blue and gold</span></button>
+            <button role="radio" data-v="blueprint" class="look" data-look="blueprint"><i></i><b>Blueprint</b><span>Dark, deep navy</span></button>
+            <button role="radio" data-v="paper" class="look" data-look="paper"><i></i><b>Paper</b><span>Light, cool and crisp</span></button>
+            <button role="radio" data-v="mint" class="look" data-look="mint"><i></i><b>Mint</b><span>Light, soft green</span></button>
+          </div>
+        </fieldset>
+      </section>
+    </div>
+  </div>
+  <div class="panel-foot"><button class="btn ghost" id="resetSettings">Reset</button><button class="btn primary" id="settingsDone">Done</button></div>
+</aside>
+
+<!-- Help -->
+<dialog class="dlg" id="helpDlg" aria-labelledby="helpTitle">
+  <div class="dlg-head"><h2 id="helpTitle">How to use Manimo</h2><button class="icon-btn" data-close aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button></div>
+  <div class="dlg-body">
+    <p style="margin:0 0 6px;color:var(--text-2)">Manimo turns animation code into video. You never need to touch Python: paste code, press one button, watch it play.</p>
+    <ol class="steps">
+      <li><div><b>Add your code</b><p>Paste it, open a <b>.py</b> file (File → Open), load an example (File → Examples), or press <b>Ask AI</b> and describe the animation in your own words. Manimo understands both ManimGX code and Manim code.</p></div></li>
+      <li><div><b>Choose what to render</b><p>If your file has several scenes, pick one in the <b>Scene</b> menu, or choose <b>All scenes</b> to render them one after another.</p></div></li>
+      <li><div><b>Pick the quality</b><p>Click the quality button. Use 480p for quick drafts and 1080p for the finished video.</p></div></li>
+      <li><div><b>Press Start Rendering</b><p>Progress shows under your code. When it finishes, the video plays in the Preview on the right.</p></div></li>
+      <li><div><b>Find your video</b><p>Videos are saved in the folder shown in the toolbar (by default <i>Videos\Manimo</i>). Click the arrow beside it to open the folder.</p></div></li>
+    </ol>
+    <h3 class="help-h">Handy to know</h3>
+    <dl class="kv">
+      <dt>Hover for help</dt><dd>Rest the mouse on a word or number in the code. A small note says what it does and what to try changing.</dd>
+      <dt>Parts strip</dt><dd>Under the preview, one button per <i>next_section</i> in your code. Click one to jump to that part.</dd>
+      <dt>AI assistant</dt><dd>Press the sparkle icon in the top bar (or Ctrl+L) to open the assistant, connect an AI once, then describe an idea. It writes the code, checks it for errors and overlapping text, fixes what it finds, and you press <i>Apply &amp; render</i>.</dd>
+      <dt>Present</dt><dd>Renders one scene as a slideshow that pauses at each section. Great for lectures.</dd>
+      <dt>Layout notes</dt><dd>After a render, click a note to jump to the line it talks about. They are hints, not errors.</dd>
+      <dt>Sessions</dt><dd>Manimo remembers your work when you close it. Session → Save lets you keep a named copy.</dd>
+      <dt>Add Manim</dt><dd>Settings → Engines. One click downloads Manim so you can render <i>from manim import *</i> code too. Or tick <i>Manim Community Edition and LaTeX</i> when you run the Manimo installer: it brings both, with no download.</dd>
+    </dl>
+    <h3 class="help-h">Keyboard shortcuts</h3>
+    <dl class="kv" id="shortcutList"></dl>
+    <h3 class="help-h">Something not working?</h3>
+    <div class="faq">
+      <details><summary>Start Rendering does nothing</summary><p>Hover the button or look under the code: it says what is missing, usually a scene class. Your code needs a class that ends in <i>Scene</i>, for example <i>class Hello(m.Scene)</i>.</p></details>
+      <details><summary>"This code is written for Manim, which is not installed"</summary><p>Open Settings and press <b>Add Manim</b> under Engines. It needs the internet once. To avoid the download, run the Manimo installer again and tick <b>Manim Community Edition and LaTeX</b>.</p></details>
+      <details><summary>The assistant says "add your API key"</summary><p>Press <b>Connect an AI</b> in the assistant panel. You need a key from your AI service, for example a Claude API key from console.anthropic.com. Using it costs a small amount per request and is billed by that service, not by Manimo.</p></details>
+      <details><summary>Is my code sent anywhere?</summary><p>Only when you use the assistant, and only to the service you connected. Rendering, editing and everything else stay on this computer.</p></details>
+      <details><summary>The video is large</summary><p>Choose a lower quality, or "Smallest file" under Video encoding in Settings.</p></details>
+      <details><summary>I want to report a problem</summary><p>Open Help → Report a problem, say what happened, then copy the report or save it as a file and send it to the author. It includes your setup details, so the problem is easier to find.</p></details>
+    </div>
+  </div>
+  <div class="dlg-foot"><button class="btn" id="helpExample">Try an example</button><button class="btn" id="helpLearn">Learn and commands</button><button class="btn primary" data-close>Got it</button></div>
+</dialog>
+
+<!-- Speak text: typed words become a voice-over -->
+<dialog class="dlg" id="speakDlg" aria-labelledby="speakTitle">
+<div class="dlg-head"><h2 id="speakTitle">Speak text</h2><button class="icon-btn" data-close aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button></div>
+<div class="dlg-body">
+  <label class="lbl" for="speakText">What should the voice say?</label>
+  <textarea class="input" id="speakText" rows="5" maxlength="900" placeholder="Type or paste your narration. It is read in the voice chosen in Settings."></textarea>
+  <p class="help" id="speakMsg" role="status">The voice is made on this computer. It is added to the Voice lane at the playhead.</p>
+  <div class="dlg-foot"><button class="btn primary" id="speakGo"><svg class="ic sm"><use href="#i-mic"/></svg>Add to timeline</button></div>
+</div>
+</dialog>
+<!-- My videos: everything rendered in the output folder -->
+<dialog class="dlg wide" id="libDlg" aria-labelledby="libTitle">
+<div class="dlg-head"><h2 id="libTitle">My videos</h2><button class="icon-btn" data-close aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button></div>
+<div class="dlg-body">
+  <div class="lib-bar"><span class="lib-dir" id="libDir"></span><button class="btn sm ghost" id="libFolder"><svg class="ic sm"><use href="#i-folder"/></svg>Open folder</button></div>
+  <p class="lib-msg" id="libMsg" role="status"></p>
+  <ul class="lib-grid" id="libGrid"></ul>
+</div>
+</dialog>
+<!-- Lesson prompt builder and library (text comes from assets/prompts.json) -->
+<dialog class="dlg wide" id="promptDlg" aria-labelledby="promptTitle">
+<div class="dlg-head"><h2 id="promptTitle">Lesson prompt</h2><button class="icon-btn" data-close aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button></div>
+<div class="dlg-body" id="promptBody"></div>
+</dialog>
+<!-- Learn and reference -->
+<dialog class="dlg wide" id="learnDlg" aria-labelledby="learnTitle">
+  <div class="dlg-head"><h2 id="learnTitle">Learn and reference</h2><button class="icon-btn" data-close aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button></div>
+  <div class="dlg-body" id="learnBody">
+    <p style="margin:0;color:var(--text-2)">Hover over any word in the code editor to see what it does and what to change. This page lists the commands you will use most, a few experiments, and where to learn more.</p>
+    <div class="learn-nav" id="learnNav"><button class="chip sm" data-go="learnCmds">Commands</button><button class="chip sm" data-go="learnTry">Try changing</button><button class="chip sm" data-go="learnApp">Manimo features</button><button class="chip sm" data-go="learnLinks">Videos and docs</button></div>
+    <h3 class="help-h" id="learnCmds">Commands you will use most</h3>
+    <div id="learnCmdList"></div>
+    <h3 class="help-h" id="learnTry">Try changing these</h3>
+    <ul class="learn-try" id="learnTryList"></ul>
+    <h3 class="help-h" id="learnApp">What Manimo adds</h3>
+    <dl class="kv">
+      <dt>Projects</dt><dd>File &rarr; New project keeps every scene, render and recording of a lesson in one folder with a <i>project.mo</i> file. Reopen it from File → Recent projects. The Project panel (folder icon, top left) shows which scenes are out of date and renders only those.</dd>
+      <dt>Compose</dt><dd>Press Compose in the top bar. A pop-up editor opens with every video you rendered in the project already on the timeline. Cut, trim, fade, add background music, record yourself on camera or a voice-over, then export one finished video with chapters and subtitles.</dd>
+      <dt>Ask AI</dt><dd>Describe an animation and the assistant writes and checks the code (Ctrl+L).</dd>
+      <dt>Present</dt><dd>Plays a scene as slides that pause at each <i>next_section</i>.</dd>
+      <dt>Script</dt><dd>Lists every narrated line with its time. Save as .txt, .srt, .vtt or .json, and pick the voice.</dd>
+      <dt>Narrate</dt><dd>Record your own voice (and camera) over a finished video and save it as a new file.</dd>
+      <dt>self.say(…)</dt><dd>Speaks a sentence with the built-in voice. <i>with self.voiceover(text="…")</i> from other Manim code also works.</dd>
+    </dl>
+    <h3 class="help-h" id="learnLinks">Videos and documentation</h3>
+    <p class="help" style="margin:0 0 8px">These open in your web browser. Video links open a YouTube search, so you always get the current videos.</p>
+    <div class="learn-links" id="learnLinkList"></div>
+  </div>
+  <div class="dlg-foot"><span class="spacer"></span><button class="btn primary" data-close>Close</button></div>
+</dialog>
+
+<!-- Report a problem -->
+<dialog class="dlg" id="reportDlg" aria-labelledby="reportTitle">
+  <div class="dlg-head"><h2 id="reportTitle">Report a problem</h2><button class="icon-btn" data-close aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button></div>
+  <div class="dlg-body">
+    <p style="margin:0;color:var(--text-2)">Tell us what went wrong. Manimo adds details about your setup so the problem is easier to find. Nothing is sent until you press <b>Send by email</b>: it opens your email app with the report ready to send to <b>mathannits92@gmail.com</b>. You can read the whole report below first.</p>
+    <div class="field"><label class="lbl" for="reportWhat">What happened?</label>
+      <textarea class="input" id="reportWhat" rows="4" placeholder="For example: I pressed Start Rendering and it stopped at 40%&hellip;"></textarea></div>
+    <div class="field">
+      <label class="chk"><input type="checkbox" id="reportSetup" checked> Include my setup (versions, screen, folder)</label>
+      <label class="chk"><input type="checkbox" id="reportLog" checked> Include what the last render printed</label>
+      <label class="chk"><input type="checkbox" id="reportCode"> Include the code in the editor</label>
+    </div>
+    <details class="report-peek"><summary>See exactly what will be in the report</summary><pre id="reportText" class="setup-text"></pre></details>
+    <p class="help" id="reportMsg" role="status"></p>
+  </div>
+  <div class="dlg-foot"><button class="btn ghost" id="reportAuthor">Author's page</button><span class="spacer"></span><button class="btn" id="reportSave">Save as a file</button><button class="btn" id="reportCopy">Copy</button><button class="btn primary" id="reportMail"><svg class="ic sm"><use href="#i-send"/></svg>Send by email</button></div>
+</dialog>
+<!-- About -->
+<dialog class="dlg" id="aboutDlg" aria-labelledby="aboutTitle">
+  <div class="dlg-head"><h2 id="aboutTitle">About Manimo</h2><button class="icon-btn" data-close aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button></div>
+  <div class="dlg-body">
+    <div class="about-hero">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="9" fill="var(--accent)"/><path d="M5.5 20.5c3.2 0 3.2-9 6.5-9s3.2 9 6.5 9 3.2-9 6.5-9" fill="none" stroke="var(--on-accent)" stroke-width="2.4" stroke-linecap="round"/><circle cx="25.5" cy="11.5" r="2.2" fill="var(--on-accent)"/></svg>
+      <div><h3>Manimo</h3><p>Math, in motion. <span class="num" id="aboutVersion"></span></p></div>
+    </div>
+    <p style="margin:0;color:var(--text-2)">Manimo turns animation code into video on your own computer, with a live preview and one-click rendering. It is made for teachers, students and anyone who wants moving diagrams without learning Python.</p>
+    <div class="card">
+      <h4>Made by Mathan Kumar P</h4>
+      <div class="role">Physics &amp; Electrochemistry · Coimbatore, Tamil Nadu</div>
+      <p>Research in experimental thin-film synthesis, solid-state electrolytes and interfacial impedance modelling, and teaching first-year engineering physics to CSE, ECE, EEE and Mechanical students.</p>
+      <p style="margin-top:10px"><button class="btn primary sm" id="aboutPortfolio"><svg class="ic sm"><use href="#i-external"/></svg>Visit the portfolio</button>
+        <span style="margin-left:8px;color:var(--text-3);font-size:12.5px">mathanmj92.github.io/mathan</span></p>
+    </div>
+    <div class="card">
+      <h4>Built with Claude</h4>
+      <p>Manimo was designed and built with Claude, an AI assistant from Anthropic, working alongside its author.</p>
+    </div>
+    <div class="card">
+      <h4>With thanks</h4>
+      <p>To the ManimGX team at Academa, and to the developers of Manim Community Edition, whose work makes Manimo possible. Manim itself began as Grant Sanderson's animation library for 3Blue1Brown.</p>
+    </div>
+    <div class="card">
+      <h4>Under the hood</h4>
+      <ul>
+        <li>ManimGX, the GPU animation engine by the Academa Team <span class="num" id="aboutGx"></span></li>
+        <li>Manim Community Edition, optional <span class="num" id="aboutCe"></span></li>
+        <li>CodeMirror for the editor, and Python <span class="num" id="aboutPy"></span></li>
+      </ul>
+      <p>Each part keeps its own open-source licence. See <i>THIRD-PARTY-NOTICES.txt</i> in the install folder.</p>
+    </div>
+  </div>
+  <div class="dlg-foot"><button class="btn" id="aboutSetup">Check my setup</button><button class="btn primary" data-close>Close</button></div>
+</dialog>
+
+<!-- Setup check -->
+<dialog class="dlg" id="setupDlg" aria-labelledby="setupTitle">
+  <div class="dlg-head"><h2 id="setupTitle">Check my setup</h2><button class="icon-btn" data-close aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button></div>
+  <div class="dlg-body"><p style="margin:0;color:var(--text-2)">Everything Manimo found on this computer. Copy it if you ever need to ask for help.</p><pre class="mono-box" id="setupText">Checking…</pre></div>
+  <div class="dlg-foot"><button class="btn" id="setupCopy"><svg class="ic sm"><use href="#i-copy"/></svg>Copy</button><button class="btn primary" data-close>Close</button></div>
+</dialog>
+
+<!-- Script export -->
+<dialog class="dlg" id="scriptDlg" aria-labelledby="scriptDlgTitle">
+  <div class="dlg-head"><h2 id="scriptDlgTitle">Narration script</h2><button class="icon-btn" data-close aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button></div>
+  <div class="dlg-body">
+    <div class="voice-row" id="voiceRow">
+      <label class="lbl" for="voiceSel">Voice</label>
+      <select class="input" id="voiceSel" aria-label="Narration voice"></select>
+      <select class="input" id="voiceSpeed" aria-label="Speaking speed"><option value="0.9">Slower</option><option value="1" selected>Normal speed</option><option value="1.15">Faster</option></select>
+      <button class="btn" id="voicePlay">Hear it</button>
+      <audio id="voiceAudio" hidden></audio>
+    </div>
+    <p class="help" id="voiceMsg" role="status" style="margin:0"></p>
+    <p class="help" id="scriptNote" style="margin:0"></p>
+    <ol class="script-list" id="scriptList"></ol>
+    <p class="help" id="scriptEst">Save the script to read, record against, or give to a voice tool.</p>
+    <p class="help" id="scriptMsg" role="status"></p>
+  </div>
+  <div class="dlg-foot"><button class="btn ghost" id="scriptCopy">Copy</button><span class="spacer"></span>
+    <button class="btn" data-fmt="txt">Save .txt</button><button class="btn" data-fmt="srt">.srt</button><button class="btn" data-fmt="vtt">.vtt</button><button class="btn" data-fmt="json">.json</button></div>
+</dialog>
+
+<!-- AI settings -->
+<dialog class="dlg" id="aiDlg" aria-labelledby="aiDlgTitle">
+  <div class="dlg-head"><h2 id="aiDlgTitle">AI assistant settings</h2><button class="icon-btn" data-close aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button></div>
+  <div class="dlg-body">
+    <p style="margin:0 0 4px;color:var(--text-2)">Connect an AI so Manimo can write and fix animation code for you. Use an assistant already installed on this PC (no key needed), or an API key saved encrypted on this PC.</p>
+    <fieldset class="field"><legend>How to connect</legend>
+      <div class="seg" role="radiogroup" aria-label="How to connect" id="aiProvider">
+        <button role="radio" data-v="agent">Assistant on this PC</button><button role="radio" data-v="anthropic">Claude API key</button><button role="radio" data-v="openai">Other / local model</button>
+      </div>
+    </fieldset>
+    <div class="field" id="aiAgentRow" hidden><label class="lbl" for="aiAgentSel">Installed assistant</label>
+      <select class="input" id="aiAgentSel"></select>
+      <input class="input" id="aiAgentModel" type="text" spellcheck="false" placeholder="Model (optional, leave empty for its default)" style="margin-top:8px">
+      <p class="help" id="aiAgentHelp"></p></div>
+    <div class="field" id="aiKeyRow"><label class="lbl" for="aiKey">API key</label>
+      <input class="input" id="aiKey" type="password" autocomplete="off" spellcheck="false" placeholder="Paste your key">
+      <p class="help" id="aiKeyHelp"></p><p class="help"><button class="linkbtn" id="aiGetKey">Get a Claude API key ↗</button></p></div>
+    <div class="field" id="aiUrlRow" hidden><label class="lbl" for="aiUrl">Service address</label>
+      <input class="input" id="aiUrl" type="text" spellcheck="false" placeholder="https://api.openai.com/v1">
+      <p class="help">For a model on this PC (Ollama) use <code>http://localhost:11434/v1</code> and leave the key empty.</p></div>
+    <div class="field"><label class="lbl" for="aiModelSel">Model</label>
+      <select class="input" id="aiModelSel"></select>
+      <input class="input" id="aiModelText" type="text" spellcheck="false" placeholder="model name" hidden style="margin-top:8px"></div>
+    <div class="field"><label class="chk"><input type="checkbox" id="aiVisual"> Let the assistant look at a picture of its own scene to catch problems (Claude only; uses more of your quota)</label></div>
+    <p class="help" id="aiTestMsg" role="status"></p>
+  </div>
+  <div class="dlg-foot"><button class="btn ghost" id="aiClearKey">Remove saved key</button><span class="spacer"></span><button class="btn" id="aiTest">Save &amp; test</button><button class="btn primary" id="aiSave">Save</button></div>
+</dialog>
+
+<div class="menu" id="menu" role="menu" hidden></div>
+<div class="scrim" id="scrim"></div>
+<div class="dropzone" id="dropzone">Drop your .py file to load it</div>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+<div class="sr-only" id="live" role="status" aria-live="polite"></div>
+<input type="file" id="fileInput" accept=".py,text/x-python,text/plain" hidden>
+<input type="file" id="sessionInput" accept=".manimo,application/json" hidden>
+
+<script>window.MANIMO_TOKEN = "__MANIMGX_TOKEN__";</script>
+<script src="vendor/editor.js"></script>
+<script src="assets/app.js"></script>
+<script src="assets/project.js"></script>
+<script src="assets/prompt.js"></script>
+<script src="assets/library.js"></script>
+</body>
+</html>

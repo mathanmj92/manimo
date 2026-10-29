@@ -1,0 +1,5 @@
+manimgx>=0.1.1
+pywebview>=5; sys_platform == "win32"
+imageio-ffmpeg>=0.5
+kokoro-onnx>=0.5
+soundfile>=0.12

@@ -1,0 +1,46 @@
+Manimo - third-party notices
+============================
+
+Manimo is built from open-source parts. Each keeps its own licence; the full text of each is
+available from the project named below.
+
+Python 3.13 (private copy inside this install)
+  Python Software Foundation License.  https://docs.python.org/3/license.html
+
+ManimGX (the animation engine) 0.1.1
+  By the Academa Team. Declared licences: MIT AND GPL-2.0-or-later AND LGPL-2.1-or-later AND Apache-2.0 AND BSD-2-Clause AND BSD-3-Clause AND BSL-1.0 AND ISC AND MPL-2.0 AND Unicode-3.0 AND Zlib AND 0BSD AND OFL-1.1 AND LPPL-1.3c AND GPL-3.0-or-later WITH Font-exception-2.0 AND Bitstream-Vera AND LicenseRef-Arev-Fonts AND W3C-20150513 AND CC-BY-SA-3.0 AND Apache-2.0 WITH LLVM-exception AND NCSA AND MIT-Khronos-old
+  https://pypi.org/project/manimgx/   https://github.com/academa-labs/manimgx
+  Its own wheel carries the complete licence files.
+
+Python packages installed with ManimGX: numpy, Pillow, networkx, typer, rich,
+skia-pathops, svgelements, isosurfaces and others. Each is under a permissive open-source licence
+(BSD, MIT, Apache-2.0 or similar); see their PyPI pages or the dist-info folders inside
+python\Lib\site-packages for details.
+
+CodeMirror 6 and Lezer (the code editor)
+  MIT License, Copyright (C) Marijn Haverbeke and others.  https://codemirror.net/
+
+Optional component "Manim Community Edition and LaTeX" (only present if you ticked it in Setup)
+
+  Manim Community Edition 0.22.0
+    MIT License, Copyright (C) 3Blue1Brown LLC and the Manim Community Developers.  https://www.manim.community/
+  Its Python packages, each under its own licence (the wheels carry the licence files): ManimPango (MIT, bundles Pango, GLib,
+  HarfBuzz and Cairo under LGPL/MIT/MPL), pycairo (LGPL-2.1 or MPL-1.1), PyAV (BSD-3-Clause; bundles FFmpeg shared libraries
+  under LGPL-2.1-or-later), SciPy (BSD-3-Clause), moderngl, moderngl-window, glcontext (MIT), pyglet (BSD), PyGLM (Zlib),
+  mapbox-earcut (ISC), watchdog (Apache-2.0), tqdm (MPL-2.0 AND MIT), click and cloup (BSD-3-Clause), decorator (BSD-2-Clause),
+  pydub, screeninfo, srt, beautifulsoup4 and soupsieve (MIT), audioop-lts (PSF-2.0).
+
+  TeX Live 2026, trimmed to what Manim needs (texlive\ inside the Manimo folder; nothing is added to your PATH or registry)
+    TeX Live is a collection of separately licensed free software, all of which may be redistributed.  https://tug.org/texlive/
+    Programs: pdfTeX (GPL-2.0-or-later, Han The Thanh and others, based on TeX by Donald Knuth), dvisvgm (GPL-3.0-or-later,
+    Martin Gieseking), dvips PostScript headers, Kpathsea (LGPL-2.1).
+    Macro packages and fonts (licence per TeX Live catalogue): LaTeX base, tools, graphics, l3kernel, amsmath, babel,
+    microtype, xcolor, setspace, standalone, ragged2e (LPPL 1.3c / 1.3 / 1.2); preview (GPL-3.0-or-later); physics (LPPL);
+    tipa (LPPL 1.2); jknapltx (GPL); relsize (public domain); amsfonts (SIL OFL 1.1); Latin Modern (GUST Font License);
+    Computer Modern fonts and Plain TeX (Knuth licence: free to use and redistribute, name change required for modified copies);
+    doublestroke, calligra, wasysym, rsfs, dvips (free licences as catalogued by CTAN).
+    The exact list, with version and licence of every package that was shipped, is in texlive\tlpkg\tlpobj\ (one small file each).
+    The source code of the GPL and LGPL programs is available from https://tug.org/texlive/svn/ and https://dvisvgm.de/ .
+    The licence texts are in texlive\LICENSE.TL and texlive\LICENSE.CTAN.
+You can remove Manimo at any time from Settings > Apps > Installed apps. Videos you rendered are never touched.
+

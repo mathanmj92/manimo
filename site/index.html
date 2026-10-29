@@ -1,0 +1,373 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Manimo: turn animation code into narrated lesson videos</title>
+<meta name="description" content="Manimo is a free Windows app that writes, renders, narrates and edits maths and science animations into one finished lesson video, all on your own PC.">
+<meta name="theme-color" content="#0e1316">
+<script>try{var t=localStorage.getItem('manimo-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+<meta property="og:title" content="Manimo: math, in motion">
+<meta property="og:description" content="Write the animation, render it, give it a voice, and edit your scenes into one finished lesson. Free for Windows. Works offline.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2358c4dd'/%3E%3Cpath d='M4 17c3-9 6-9 9 0s6 9 9 0 4-6 6-6' fill='none' stroke='%2306161b' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preload" href="assets/fonts/bricolage.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="css/site.css?v=3">
+<noscript><style>.scene-ctl button { display: none; } .steps li::after { transform: none !important; }</style></noscript>
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <symbol id="i-logo" viewBox="0 0 32 32"><rect width="32" height="32" rx="8" fill="var(--accent)"/><path d="M4 17c3-9 6-9 9 0s6 9 9 0 4-6 6-6" fill="none" stroke="var(--on-accent)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></symbol>
+    <symbol id="i-pause" viewBox="0 0 24 24"><path d="M8.5 5.5v13M15.5 5.5v13" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></symbol>
+    <symbol id="i-win" viewBox="0 0 24 24"><path d="M3 5.6l7.6-1v7H3zM12 4.4 21 3v8.6h-9zM3 12.5h7.6v7L3 18.4zM12 12.5h9V21l-9-1.3z" fill="currentColor"/></symbol>
+    <symbol id="i-code" viewBox="0 0 24 24"><path d="m8 8-4 4 4 4M16 8l4 4-4 4M14 5l-4 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-film" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="m10.5 9.5 4 2.5-4 2.5z" fill="currentColor"/></symbol>
+    <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+    <symbol id="i-music" viewBox="0 0 24 24"><path d="M9 18V6l10-2v12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6.5" cy="18" r="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="16.5" cy="16" r="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/></symbol>
+    <symbol id="i-camera" viewBox="0 0 24 24"><rect x="3" y="6.5" width="12.5" height="11" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="m15.5 11 5-3v8l-5-3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
+    <symbol id="i-scissors" viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="6" cy="18" r="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8 7.5 20 18M8 16.5 20 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+    <symbol id="i-trim" viewBox="0 0 24 24"><path d="M5 4v16M9 12h11M13 8l-4 4 4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-fade" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M4 9h16M4 13h9M4 17h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+    <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5M4 9h10a6 6 0 0 1 0 12h-3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-export" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 20h14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3.5 7.5a2 2 0 0 1 2-2h4l2 2.5h7a2 2 0 0 1 2 2v7.5a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
+  </defs>
+</svg>
+
+<header class="top">
+  <div class="wrap">
+    <a class="brand" translate="no" href="#top" aria-label="Manimo, back to the top"><svg aria-hidden="true"><use href="#i-logo"/></svg>Manimo</a>
+    <nav aria-label="Page sections">
+      <a href="#lesson">A real lesson</a>
+      <a href="#prompt">Prompt</a>
+      <a href="#library">Library</a>
+      <a href="#compose">Compose</a>
+      <a href="#faq">Questions</a>
+      <a href="#contact">Contact</a>
+    </nav>
+    <button class="theme" id="theme" type="button" aria-pressed="false" aria-label="Switch to light mode"><svg class="moon" aria-hidden="true"><use href="#i-moon"/></svg><svg class="sun" aria-hidden="true"><use href="#i-sun"/></svg></button>
+    <a class="btn btn-gold" href="https://github.com/mathanmj92/manimo/releases/download/v1.9.5/Manimo-Setup-1.9.5.exe">Download</a>
+  </div>
+</header>
+
+<main id="main">
+
+<!-- ============ hero ============ -->
+<section class="hero" id="top">
+  <div class="wrap">
+    <div>
+      <h1><span>Math,</span><span>in motion.</span></h1>
+      <p class="lead">Write the animation, render it, give it a voice, and edit your scenes into one finished lesson. Everything runs on your own Windows PC.</p>
+      <div class="cta">
+        <a class="btn btn-gold" href="https://github.com/mathanmj92/manimo/releases/download/v1.9.5/Manimo-Setup-1.9.5.exe"><svg aria-hidden="true"><use href="#i-win"/></svg>Download for Windows, free</a>
+        <a class="btn btn-line" href="#lesson">Watch a lesson made with it</a>
+      </div>
+      <p class="fine">241&nbsp;MB. Installs for one user, works offline, no account.</p>
+    </div>
+    <div class="scene">
+      <div class="scene-frame">
+        <svg id="scene" viewBox="0 0 600 380" role="img" aria-label="A circle with a point travelling around it. The point's height is traced to the right as a sine wave.">
+          <path class="sc-axis" d="M290 190H585M290 310V70"/>
+          <path class="sc-tick" d="M333 184v12M376 184v12M419 184v12M462 184v12M505 184v12M548 184v12"/>
+          <circle class="sc-circle sc-draw" cx="150" cy="190" r="100" pathLength="1"/>
+          <path class="sc-axis" d="M30 190H270M150 70V310" opacity=".45"/>
+          <path id="sc-curve" class="sc-curve" d="M290.0 190.0 L293.8 181.3 L297.5 172.6 L301.3 164.1 L305.0 155.8 L308.8 147.7 L312.5 140.0 L316.3 132.6 L320.0 125.7 L323.8 119.3 L327.5 113.4 L331.3 108.1 L335.0 103.4 L338.8 99.4 L342.5 96.0 L346.3 93.4 L350.0 91.5 L353.8 90.4 L357.5 90.0 L361.3 90.4 L365.0 91.5 L368.8 93.4 L372.6 96.0 L376.3 99.4 L380.1 103.4 L383.8 108.1 L387.6 113.4 L391.3 119.3 L395.1 125.7 L398.8 132.6 L402.6 140.0 L406.3 147.7 L410.1 155.8 L413.8 164.1 L417.6 172.6 L421.3 181.3 L425.1 190.0 L428.8 198.7 L432.6 207.4 L436.3 215.9 L440.1 224.2 L443.9 232.3 L447.6 240.0 L451.4 247.4 L455.1 254.3 L458.9 260.7 L462.6 266.6 L466.4 271.9 L470.1 276.6 L473.9 280.6 L477.6 284.0 L481.4 286.6 L485.1 288.5 L488.9 289.6 L492.6 290.0 L496.4 289.6 L500.1 288.5 L503.9 286.6 L507.6 284.0 L511.4 280.6 L515.1 276.6 L518.9 271.9 L522.7 266.6 L526.4 260.7 L530.2 254.3 L533.9 247.4 L537.7 240.0 L541.4 232.3 L545.2 224.2 L548.9 215.9 L552.7 207.4 L556.4 198.7 L560.2 190.0"/>
+          <line id="sc-link" class="sc-link" x1="250" y1="190" x2="290" y2="190"/>
+          <line id="sc-radius" class="sc-radius" x1="150" y1="190" x2="250" y2="190"/>
+          <circle id="sc-dot" class="sc-dot" cx="250" cy="190" r="7"/>
+          <circle id="sc-tip" class="sc-tip" cx="290" cy="190" r="6"/>
+          <text class="sc-label" x="500" y="78">sin θ</text>
+        </svg>
+      </div>
+      <div class="scene-ctl">
+        <p>A sine wave grows out of a circle. Manimo draws diagrams like this one from a few lines of code.</p>
+        <div><button type="button" id="scene-pause" class="again">Pause</button><button type="button" id="scene-replay" class="again">Replay</button></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ a real lesson ============ -->
+<section class="pad numberplane hair lesson" id="lesson">
+  <div class="wrap split flip">
+    <div class="shot-wrap">
+      <video controls preload="none" poster="assets/img/capacitor-poster.webp" playsinline width="854" height="480">
+        <source src="assets/capacitor-lesson.mp4" type="video/mp4">
+        <track kind="captions" src="assets/capacitor-lesson.vtt" srclang="en" label="English">
+        Your browser cannot play this video. <a href="assets/capacitor-lesson.mp4">Download the lesson video.</a>
+      </video>
+      <p class="cap">Charging a capacitor through a resistor. 51 seconds, narrated by the built-in Adam voice.</p>
+    </div>
+    <div class="copy">
+      <h2>A real lesson, made in Manimo</h2>
+      <p class="lead">This is what comes out: a circuit that fills a capacitor, a graph that grows as the voltage rises, and a voice that explains each step while it happens.</p>
+      <p>It was written as code, rendered on one laptop, and narrated by a voice that lives inside the app. No upload, no recording studio.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ the app ============ -->
+<section class="pad hair" id="app">
+  <div class="wrap">
+    <div class="head">
+      <h2>Everything in one window</h2>
+      <p class="lead">Code on the left, your video on the right, and every part of the lesson one click away.</p>
+    </div>
+    <figure class="shot">
+      <div class="frame"><img src="assets/img/app-editor.webp" width="2000" height="1250" alt="The Manimo window: the capacitor lesson's code on the left and the rendered video playing on the right." loading="lazy"></div>
+      <figcaption>The capacitor lesson open in Manimo, rendered at 1080p. The strip under the video lists each part of the lesson; click one to jump to its code.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ the lesson prompt ============ -->
+<section class="pad hair" id="prompt">
+  <div class="wrap stack">
+    <div class="head">
+      <h2>A prompt that writes the lesson for you</h2>
+      <p class="lead">Give this to any AI model. Fill in the marked places and it returns a complete animation, with the equations built up on screen and a narration script timed to the picture.</p>
+    </div>
+    <div class="builder">
+      <form class="pfields" id="pfields" autocomplete="off"><p class="soft">This part needs JavaScript. The prompt is also saved in <a href="assets/prompts.json">prompts.json</a>.</p></form>
+      <div class="pout">
+        <div class="pbar"><h3>Your prompt</h3><button type="button" class="btn btn-gold" id="pcopy">Copy prompt</button></div>
+        <p class="legend"><span class="ph-miss">[YELLOW]</span> still needs your words. <span class="ph">Blue</span> is what you filled in. The rest stays as it is.</p>
+        <pre id="pre" tabindex="0" aria-label="The prompt, with your answers filled in"></pre>
+        <p class="note" id="pnote" role="status"></p>
+      </div>
+    </div>
+    <div class="split improve">
+      <div class="copy">
+        <h3>Get an even better result</h3>
+        <ul class="points">
+          <li><b>Paste the equations as LaTeX,</b> in the order they should appear. The model builds them up piece by piece.</li>
+          <li><b>Give the worked example real numbers.</b> "R = 10 kilohm, C = 100 microfarad" beats "some resistor".</li>
+          <li><b>Say what the viewer can do at the end,</b> for example "explain why the curve flattens".</li>
+          <li><b>Say what they already know,</b> so basics are skipped or explained.</li>
+          <li><b>One idea per scene.</b> For a whole lesson, ask for scene 1, 2 and 3 separately, then join them in Compose.</li>
+          <li><b>Show a scene you liked</b> and add "match the pacing and layout of this".</li>
+          <li><b>Inside Manimo, Ask AI also checks every name,</b> runs a test render and fixes overlapping text for you.</li>
+        </ul>
+      </div>
+      <div class="copy">
+        <h3>When it needs a nudge</h3>
+        <p class="soft">Three follow-ups that work with any model. Replace the marked places and send.</p>
+        <div id="followups" class="followups"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ prompt library ============ -->
+<section class="pad hair band-alt" id="library">
+  <div class="wrap">
+    <div class="head">
+      <h2>Prompt library</h2>
+      <p class="lead">Pick a topic and its prompt is ready to copy, with the equations and a worked example already in. More topics in maths and physics are added over time.</p>
+    </div>
+    <div class="chips" role="group" aria-label="Filter by subject" id="lib-filter"></div>
+    <ul class="plib" id="plib"></ul>
+    <p class="soft" style="margin-top:22px">Missing a topic? <a href="mailto:mathannits92@gmail.com?subject=Manimo%20prompt%20request">Ask for it by email</a> and it goes on the list.</p>
+  </div>
+</section>
+
+<!-- ============ write ============ -->
+<section class="pad hair" id="write">
+  <div class="wrap stack">
+    <div class="split">
+      <div class="copy">
+        <h2>Know what every line does</h2>
+        <p class="lead">Rest the mouse on any word, option or number in the code. A short note says what it is and what to try changing.</p>
+        <ul class="points">
+          <li><b>Plain words, not jargon.</b> <code translate="no">def construct</code> is explained as “the recipe of your video”, and <code>x_range</code> as the start, end and step of the axis.</li>
+          <li><b>Your own names too.</b> Hover a function or variable you wrote and it tells you where it was defined and how often it is used.</li>
+          <li><b>Autocomplete from the engine.</b> Over 500 built-in names, suggested as you type.</li>
+          <li><b>Examples ready to run</b> from the File menu, and layout notes that jump to the line they are about.</li>
+        </ul>
+      </div>
+      <figure class="shot"><div class="frame"><img src="assets/img/hover-help.webp" width="1586" height="1200" alt="Hovering over say in the code shows a note: speaks a sentence in the built-in voice, with the words in square brackets deciding when each animation starts." loading="lazy"></div><figcaption>Hovering over <code>say</code>. Options and numbers get notes too, so you know what is safe to change.</figcaption></figure>
+    </div>
+    <div class="split flip">
+      <figure class="shot">
+        <div class="frame"><img src="assets/img/assistant.webp" width="792" height="1010" alt="The assistant panel after a request for a bubble sort: four checks passed and the finished scene is ready to apply." loading="lazy"></div>
+        <figcaption>An example request. Every step is shown, so you can see what was checked.</figcaption>
+      </figure>
+      <div class="copy">
+        <h2>Or just describe it</h2>
+        <p class="lead">Ask for an animation in your own words. Manimo's assistant writes it, then checks its own work before showing you.</p>
+        <ul class="points">
+          <li><b>Every name is verified</b> against the engine, so it does not invent commands that do not exist.</li>
+          <li><b>Unsafe code is blocked.</b> Anything that touches your files, network or system is not run.</li>
+          <li><b>Errors and overlapping text are found</b> by a real test render, and fixed in up to 3 rounds.</li>
+          <li><b>Bring your own assistant.</b> Use one already on your PC such as Claude Code, your own API key, or another model. It is optional; Manimo works fully without it.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ render ============ -->
+<section class="pad hair" id="render">
+  <div class="wrap split">
+    <div class="copy">
+      <h2>Render on your own PC</h2>
+      <p class="lead">Press Start Rendering. The video appears beside your code when it is done.</p>
+      <ul class="points">
+        <li><b>480p drafts to 4K finals,</b> with a fast, balanced or smallest-file option.</li>
+        <li><b>Present mode</b> plays a scene as slides that pause at each section, for live teaching.</li>
+        <li><b>Several scenes in a file?</b> Render one, or all of them in a row.</li>
+        <li><b>Already have Manim code?</b> Add Manim Community Edition from inside the app, once, and it renders too.</li>
+      </ul>
+    </div>
+    <figure class="shot">
+      <div class="frame"><img src="assets/img/project-tab.webp" width="608" height="640" alt="The Project panel listing two scenes that are both marked up to date, with Compose and Render what changed buttons above them." loading="lazy"></div>
+      <figcaption>The Project panel shows which scenes are up to date. Change a line and only that scene needs rendering again.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ voices ============ -->
+<section class="pad hair numberplane" id="voices">
+  <div class="wrap split">
+    <div class="copy">
+      <h2>Give your lesson a voice</h2>
+      <p class="lead">4 voices come inside the app. They run on your PC, need no key and no internet, and speak in time with your animation.</p>
+      <p>Write <code translate="no">self.say("Here is a circle, and a point moving around it.")</code> and the words are spoken as the animation plays. Words in square brackets decide when each animation starts.</p>
+      <p>The built-in voices speak English. For Tamil or any other language, record your own voice over the video.</p>
+      <ul class="formats" aria-label="Script export formats"><li>.txt</li><li>.srt</li><li>.vtt</li><li>.json</li></ul>
+      <p class="soft">Every narrated line can be exported with its time, for subtitles or review.</p>
+    </div>
+    <div>
+      <ul class="voices">
+        <li><button class="play" type="button" data-src="assets/audio/adam.m4a" data-name="Adam" aria-pressed="false" aria-label="Play the Adam sample"><svg aria-hidden="true"><use href="#i-play"/></svg></button><div class="who"><b>Adam</b><span>American, deep and steady</span></div><div class="meter" aria-hidden="true"><i></i></div></li>
+        <li><button class="play" type="button" data-src="assets/audio/echo.m4a" data-name="Echo" aria-pressed="false" aria-label="Play the Echo sample"><svg aria-hidden="true"><use href="#i-play"/></svg></button><div class="who"><b>Echo</b><span>American, clear and friendly</span></div><div class="meter" aria-hidden="true"><i></i></div></li>
+        <li><button class="play" type="button" data-src="assets/audio/nicole.m4a" data-name="Nicole" aria-pressed="false" aria-label="Play the Nicole sample"><svg aria-hidden="true"><use href="#i-play"/></svg></button><div class="who"><b>Nicole</b><span>American, soft and calm</span></div><div class="meter" aria-hidden="true"><i></i></div></li>
+        <li><button class="play" type="button" data-src="assets/audio/lewis.m4a" data-name="Lewis" aria-pressed="false" aria-label="Play the Lewis sample"><svg aria-hidden="true"><use href="#i-play"/></svg></button><div class="who"><b>Lewis</b><span>British, warm</span></div><div class="meter" aria-hidden="true"><i></i></div></li>
+      </ul>
+      <p class="fine soft" style="margin-top:14px">Each sample says: “Here is a circle. Watch a sine wave grow out of it.”</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ compose ============ -->
+<section class="pad hair" id="compose">
+  <div class="wrap stack">
+    <div class="head">
+      <h2>Cut it into one lesson</h2>
+      <p class="lead">Press Compose. Every video you rendered in the project is already on the timeline, ready to cut, trim and join.</p>
+    </div>
+    <figure class="shot">
+      <div class="frame"><img src="assets/img/compose.webp" width="2000" height="1250" alt="Manimo's Compose editor: two scenes on the video lane, a music track, icon tools for cut, trim, fade and more, and an Export video button." loading="lazy"></div>
+      <figcaption>Compose, the pop-up editor. The video lane holds your scenes; below it are lanes for your camera, voice-over and background music.</figcaption>
+    </figure>
+    <ul class="tools" aria-label="What Compose can do">
+      <li><svg aria-hidden="true"><use href="#i-scissors"/></svg>Cut at the playhead</li>
+      <li><svg aria-hidden="true"><use href="#i-trim"/></svg>Trim the start or the end</li>
+      <li><svg aria-hidden="true"><use href="#i-fade"/></svg>Fade a clip in and out</li>
+      <li><svg aria-hidden="true"><use href="#i-music"/></svg>Background music that repeats and fades</li>
+      <li><svg aria-hidden="true"><use href="#i-camera"/></svg>Yourself on camera, in any corner</li>
+      <li><svg aria-hidden="true"><use href="#i-mic"/></svg>Record a voice-over while it plays</li>
+      <li><svg aria-hidden="true"><use href="#i-undo"/></svg>Undo and redo</li>
+      <li><svg aria-hidden="true"><use href="#i-export"/></svg>Export 1080p, 720p, 480p or audio only</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============ why (marigold band) ============ -->
+<section class="pad band-accent" id="why">
+  <div class="wrap">
+    <div class="head"><h2>Why it earns its place</h2><p class="lead">Making a lesson video usually means stitching several tools together. Manimo puts the whole chain in one app.</p></div>
+    <div class="contrast">
+      <div class="no">
+        <h3>Without it</h3>
+        <ul>
+          <li>Install Python, then an animation library, then a video tool, then a speech service.</li>
+          <li>Learn to code before you see your first frame.</li>
+          <li>Render in a terminal, then open the files in a separate video editor.</li>
+          <li>Record narration somewhere else and line it up by hand.</li>
+        </ul>
+      </div>
+      <div class="yes">
+        <h3>With Manimo</h3>
+        <ul>
+          <li>One installer that works offline. Nothing to set up first.</li>
+          <li>Start from an example, hover to understand every line, or describe the animation and let the assistant write it.</li>
+          <li>Preview, render, narrate, edit and export in one window.</li>
+          <li>The voice is timed to the animation from the start, and chapters and subtitles are written for you.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="who-for">
+      <div><h3>Teachers</h3><p>Turn the diagram you always redraw on the board into an animation you can play, pause and reuse every year.</p></div>
+      <div><h3>Students</h3><p>Explain a concept for an assignment or a viva with moving pictures and your own voice, not a screenshot.</p></div>
+      <div><h3>Creators</h3><p>Build a series in one project, re-render only what you changed, and export with chapters and subtitles.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FAQ ============ -->
+<section class="pad" id="faq">
+  <div class="wrap">
+    <div class="head"><h2>Questions teachers ask</h2></div>
+    <div class="faq">
+      <details><summary>Is Manimo free?</summary><p>Yes. The download is free.</p></details>
+      <details><summary>Do I need to know Python?</summary><p>No. The installer brings what it needs. You can start from examples, hover over any line to understand it, or describe the animation and let the assistant write it. A little code helps when you want to change things yourself, and the hover notes are there to teach you.</p></details>
+      <details><summary>Does it need the internet?</summary><p>Not to install, render, narrate or edit. You only need a connection if you add Manim Community Edition from inside the app, or use a cloud AI service for the assistant.</p></details>
+      <details><summary>Which languages can the voices speak?</summary><p>The four built-in voices speak English. For Tamil or any other language, record your own voice with Narrate, or with the voice-over button in Compose.</p></details>
+      <details><summary>Is my code sent anywhere?</summary><p>Only when you use the AI assistant, and only to the service you chose. Rendering, narration and editing stay on your computer.</p></details>
+      <details><summary>Windows says “unknown publisher”. Is that normal?</summary><p>For now, yes. The installer is not signed with a commercial certificate yet, so Windows shows a warning. If you downloaded it from this page, choose More info, then Run anyway.</p></details>
+      <details><summary>Does it work on Mac or Linux?</summary><p>Not yet. Manimo is for Windows.</p></details>
+      <details><summary>What is ManimGX?</summary><p>The animation engine inside Manimo, made by the Academa team. It reads Manim-style Python and renders on your graphics card. Manimo adds the editor, assistant, voices and video editor around it.</p></details>
+    </div>
+  </div>
+</section>
+
+<!-- ============ contact ============ -->
+<section class="pad hair contact" id="contact">
+  <div class="wrap split">
+    <div class="copy">
+      <h2>Write to me</h2>
+      <p class="lead">A bug, an idea, a lesson you would like to make, or a question about the app. A short email is enough.</p>
+    </div>
+    <div class="copy">
+      <a class="mail" id="mail" href="mailto:mathannits92@gmail.com?subject=Manimo">mathannits92@gmail.com</a>
+      <div class="row">
+        <a class="btn btn-gold" href="mailto:mathannits92@gmail.com?subject=Manimo">Send an email</a>
+        <button class="btn btn-line" type="button" id="copy-mail" data-mail="mathannits92@gmail.com">Copy address</button>
+      </div>
+      <p class="note" id="copy-note" role="status"></p>
+      <p class="soft">If you report a problem, say which version of Manimo you have and what you pressed just before it happened.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ download ============ -->
+<section class="close" id="download">
+  <div class="wrap">
+    <svg class="mini" aria-hidden="true"><use href="#i-logo"/></svg>
+    <h2>Make your next lesson move.</h2>
+    <p class="lead">Free for Windows. 241&nbsp;MB. Works offline.</p>
+    <a class="btn btn-gold" href="https://github.com/mathanmj92/manimo/releases/download/v1.9.5/Manimo-Setup-1.9.5.exe"><svg aria-hidden="true"><use href="#i-win"/></svg>Download for Windows, free</a>
+    <p class="hash">Version 1.9.5. SHA-256 <span translate="no">C3188B29523CA546ABCCD67D0E62CC69EB27269430C4B474B41CCF3CCA8E7508</span></p>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>Made by <a href="https://mathanmj92.github.io/mathan/">Mathan Kumar P</a>, Physics and Electrochemistry, Coimbatore, India.</p>
+    <p translate="no">Built with Claude. With thanks to <a href="https://manimgx.academa.ai/">ManimGX</a> and <a href="https://docs.manim.community/">Manim Community Edition</a>, each under its own licence.</p>
+  </div>
+</footer>
+
+<script src="js/prompts.js?v=3" defer></script>
+<script src="js/site.js?v=3" defer></script>
+</body>
+</html>

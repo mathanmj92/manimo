@@ -1,0 +1,73 @@
+/* Web-app layout on top of studio.css: code + live preview side by side, tabs below 1000px. */
+.workspace { padding: var(--s4) var(--s5); }
+.split { width: 100%; max-width: 1520px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--s4); min-height: 0; }
+.split .editor { max-width: none; }
+
+.stage {
+  display: flex; flex-direction: column; min-height: 0; background: var(--surface);
+  border: 1px solid var(--line); border-radius: var(--r-lg); box-shadow: var(--sh-1); overflow: hidden;
+}
+.stage-head, .stage-foot { display: flex; align-items: center; gap: var(--s2); padding: 6px 10px 6px 16px; color: var(--text-3); font-size: 12.5px; background: var(--surface); }
+.stage-head { border-bottom: 1px solid var(--line); }
+.stage-head .title { font-weight: 550; color: var(--text-2); }
+.stage-head .btn { min-height: 30px; padding: 0 10px; font-size: 13px; }
+.stage-foot { border-top: 1px solid var(--line); min-height: 36px; padding-top: 8px; padding-bottom: 8px; }
+.stage-foot .pos { margin-left: auto; font-family: var(--font-mono); font-size: 12px; white-space: nowrap; }
+.stage-body { flex: 1; min-height: 0; display: grid; place-items: center; padding: var(--s4); background: var(--bg); overflow: auto; }
+
+.film { position: relative; width: min(100%, calc((100dvh - 330px) * 1.7778)); min-width: 260px; border-radius: 12px; overflow: hidden; box-shadow: var(--sh-pop); background: #000; }
+.film manimgx-player { display: block; width: 100%; }
+.film-empty {
+  aspect-ratio: 16 / 9; display: grid; place-content: center; gap: 6px; padding: var(--s5); text-align: center;
+  background: linear-gradient(160deg, oklch(0.24 0.035 265), oklch(0.15 0.02 265)); color: oklch(0.82 0.01 265);
+}
+.film-empty b { font-size: 16px; font-weight: 600; color: oklch(0.96 0.005 265); }
+.film-empty span { font-size: 13.5px; max-width: 34ch; margin: 0 auto; text-wrap: pretty; }
+.film.recording { position: fixed; left: 0; top: 0; z-index: 55; max-width: none; min-width: 0; border-radius: 0; box-shadow: none; }
+
+.tabs { display: none; }
+.tabs button[aria-selected="true"] { background: var(--surface); color: var(--text); box-shadow: var(--sh-1), 0 0 0 1px var(--line); }
+.banner {
+  display: flex; align-items: flex-start; gap: 10px; margin: 0 var(--s5); margin-top: var(--s3); padding: 10px 14px;
+  border-radius: var(--r-md); background: var(--warn-soft); color: var(--text); font-size: 13.5px;
+}
+.banner .ic { color: var(--warn); margin-top: 2px; }
+.banner b { font-weight: 600; }
+
+.rec { position: fixed; inset: 0; z-index: 60; display: none; place-items: center; padding: var(--s4); background: var(--bg); }
+.rec.show { display: grid; animation: fade .2s ease both; }
+.rec-card { width: min(100%, 420px); text-align: center; }
+.rec-card h2 { margin: 0 0 6px; font-size: 20px; letter-spacing: -.015em; }
+.rec-card p { margin: 0 0 20px; color: var(--text-2); font-size: 14px; text-wrap: pretty; }
+.rec-card .bar { margin-bottom: 8px; }
+.rec-card .n { font-variant-numeric: tabular-nums; font-weight: 600; font-size: 28px; margin-bottom: 14px; }
+
+.progress .sub { margin: 10px 0 0; font-size: 12.5px; color: var(--text-3); text-wrap: pretty; }
+.running .bar.indet > i { transform: scaleX(.3) !important; animation: slide 1.6s var(--ease-io) infinite; }
+@keyframes slide { 0% { margin-left: -30%; } 100% { margin-left: 100%; } }
+
+@media (min-width: 1001px) {
+  .progress { right: auto; left: 20px; transform-origin: bottom left; }
+  .mini { right: auto; left: 20px; }
+}
+@media (max-width: 1000px) {
+  .workspace { padding-left: var(--s4); padding-right: var(--s4); }
+  .banner { margin-left: var(--s4); margin-right: var(--s4); }
+  .split { grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr); }
+  .tabs { display: grid; width: 100%; max-width: 420px; justify-self: center; }
+  .tabs.seg button { min-height: 40px; }
+  [data-view="code"] .stage, [data-view="preview"] .editor { display: none; }
+  .film { width: min(100%, calc((100dvh - 380px) * 1.7778)); }
+}
+@media (max-width: 720px) {
+  .top-actions .btn .t, .brand .sub { display: none; }
+  .workspace { padding: var(--s2) var(--s2) 0; }
+  .split { gap: var(--s2); }
+  .banner { margin: var(--s2); }
+  .stage { border-radius: var(--r-lg) var(--r-lg) 0 0; border-bottom: 0; }
+  .stage-head .btn .t { display: none; }
+  .stage-head .btn { width: 38px; padding: 0; }
+  .stage-body { padding: var(--s3); }
+  .film { width: 100%; }
+  .mini { left: 12px; right: 12px; }
+}

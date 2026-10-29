@@ -1,0 +1,30 @@
+﻿/* Lesson prompt dialog */
+.pr-lead { margin: 0 0 4px; color: var(--text-2); }
+.pr-sec { margin-top: 6px; }
+.pr-sec .help-h { margin-top: 20px; }
+.pr-form .field { padding: 8px 0; border: 0; }
+.pr-form textarea.input { resize: vertical; min-height: 54px; }
+.pr-custom { margin-top: 8px; }
+.pr-prevlbl { display: block; font-size: 12.5px; font-weight: 600; color: var(--text-2); margin: 14px 0 6px; }
+.pr-pre { margin: 0; padding: 12px 14px; max-height: 280px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; font: 12.5px/1.55 var(--mono, ui-monospace, Consolas, monospace); background: var(--bg); color: var(--text-2); border: 1px solid var(--line); border-radius: var(--r-md); }
+.pr-pre:focus-visible, .pr-sec summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.ph, .ph-auto, .ph-miss { border-radius: 4px; padding: 0 2px; font-weight: 600; }
+.ph { background: var(--accent-soft); color: var(--accent-text); }
+.ph-auto { background: var(--surface-3); color: var(--text); }
+.ph-miss { background: var(--warn-soft); color: var(--warn); outline: 1px dashed var(--warn); }
+.pr-legend { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
+.pr-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 10px; }
+.pr-note { color: var(--text-3); font-size: 12.5px; flex: 1 1 200px; }
+.pr-filter { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 10px; }
+.pr-filter .chip[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-text); }
+.pr-lib { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.pr-item { display: flex; gap: 12px; align-items: center; justify-content: space-between; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); }
+.pr-item-t { min-width: 0; }
+.pr-item h4 { margin: 0; font-size: 14px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.pr-item p { margin: 2px 0 0; color: var(--text-3); font-size: 12.5px; }
+.pr-tag { font-size: 11px; font-weight: 600; padding: 1px 8px; border-radius: 999px; background: var(--surface-3); color: var(--text-2); }
+.pr-acts { display: flex; gap: 6px; flex: none; }
+.pr-fu { border: 1px solid var(--line); border-radius: var(--r-md); padding: 8px 12px; margin-top: 8px; background: var(--surface); }
+.pr-fu summary { cursor: pointer; font-weight: 600; font-size: 13.5px; }
+.pr-fu .pr-pre { margin: 8px 0; }
+@media (max-width: 640px) { .pr-item { flex-direction: column; align-items: stretch; } }

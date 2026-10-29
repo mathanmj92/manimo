@@ -1,0 +1,3 @@
+# Optional installer component "Manim Community Edition and LaTeX". Everything else it needs is resolved from this at build time
+# and shipped as wheels, so installing needs no network.
+manim==0.22.0
