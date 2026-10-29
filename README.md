@@ -6,6 +6,8 @@
 
 Then join your scenes into one finished video with narration, music and captions, in wide, tall (phone) or square shapes.
 
+**Website:** https://mathanmj92.github.io/manimo-site/
+
 ![Manimo editor with the live preview](docs/images/app-editor.webp)
 
 ## What it does
