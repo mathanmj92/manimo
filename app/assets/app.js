@@ -152,6 +152,7 @@ function afterEdit() {
   var v = code.value; if (typeof syncAIChip === 'function') syncAIChip();
   $('empty').hidden = v.length > 0;
   updateStatus(); paintBeats();
+  if (window.MGXCheck) window.MGXCheck.edited();
   store('mgx-code', v);
   if (window.MGXProject) window.MGXProject.changed();
 }
@@ -327,6 +328,11 @@ $('changeFolder').addEventListener('click', chooseFolder);
 $('openFolderBtn').addEventListener('click', openFolder);
 
 /* ---------------------------------------------------------------- settings panel */
+function voiceOptions(voices, withNote) {      // the voice menus group the voices as Female and Male
+  var groups = { female: [], male: [] };
+  (voices || []).forEach(function (x) { (groups[x.gender === 'female' ? 'female' : 'male']).push('<option value="' + esc(x.id) + '">' + esc(x.label + ' \u00b7 ' + x.accent + (withNote ? ' \u00b7 ' + x.note : '')) + '</option>'); });
+  return '<optgroup label="Female voices">' + groups.female.join('') + '</optgroup><optgroup label="Male voices">' + groups.male.join('') + '</optgroup>';
+}
 var settings = $('settings'), lastOpener = null;
 function persistSettings() { var s = Object.assign({}, S); delete s.theme; store('mgx-settings', JSON.stringify(s)); }
 function syncSettingsUI() {
@@ -372,7 +378,7 @@ $('setNav').addEventListener('keydown', function (e) {
 });
 function fillSettingsExtras() {
   var v = (info && info.voice) || {}, sel = $('setVoice');
-  sel.innerHTML = (v.voices || []).map(function (x) { return '<option value="' + esc(x.id) + '">' + esc(x.label + ' · ' + x.accent + ' · ' + x.note) + '</option>'; }).join('');
+  sel.innerHTML = voiceOptions(v.voices, true);
   sel.disabled = $('setSpeed').disabled = $('setVoiceTry').disabled = !v.available;
   if (v.available) { sel.value = VOICE.id; $('setSpeed').value = String(VOICE.speed); $('setVoiceNote').textContent = 'Used for every self.say and voiceover line. It runs on this PC and needs no internet.'; }
   else $('setVoiceNote').textContent = 'The narration voice is not installed in this copy of Manimo.';
@@ -412,7 +418,7 @@ function openQuick() {
   $('quickQHelp').textContent = QHELP[S.quality];
   var v = (info && info.voice) || {}, sel = $('quickVoice');
   $('quickVoiceRow').hidden = !v.available;
-  sel.innerHTML = (v.voices || []).map(function (x) { return '<option value="' + esc(x.id) + '">' + esc(x.label + ' · ' + x.accent) + '</option>'; }).join('');
+  sel.innerHTML = voiceOptions(v.voices, false);
   sel.value = VOICE.id;
   $('quickAI').textContent = aiLabel();
   var r = $('settingsBtn').getBoundingClientRect();
@@ -513,7 +519,7 @@ function fillVoices() {
   var v = (info && info.voice) || {}, sel = $('voiceSel');
   $('voiceRow').hidden = !v.available;
   $('voiceMsg').textContent = v.available ? '' : 'The narration voice is not installed in this copy of Manimo.';
-  sel.innerHTML = (v.voices || []).map(function (x) { return '<option value="' + esc(x.id) + '">' + esc(x.label + ' · ' + x.accent + ' · ' + x.note) + '</option>'; }).join('');
+  sel.innerHTML = voiceOptions(v.voices, true);
   if ((v.voices || []).some(function (x) { return x.id === VOICE.id; })) sel.value = VOICE.id; else VOICE.id = sel.value || 'am_adam';
   $('voiceSpeed').value = String(VOICE.speed);
 }
@@ -929,7 +935,7 @@ function menuItems(id) {
     mi('Ask the AI assistant', 'Ctrl+L', function () { rightTab('assistant'); }), mi('AI settings\u2026', '', openAISettings), { sep: true },
     mi('How to use Manimo', 'F1', function () { openDialog('helpDlg'); }), mi('Keyboard shortcuts', '', function () { openDialog('helpDlg'); var l = $('shortcutList'); if (l) l.scrollIntoView({ block: 'start' }); }),
     mi('Learn and commands', '', function () { openDialog('learnDlg'); }), mi('Lesson prompt\u2026', '', openPrompt),
-    mi('Report a problem\u2026', '', openReport), mi('Check my setup', '', openSetup), { sep: true },
+    mi('Report a problem\u2026', '', openReport), mi('Check my setup', '', openSetup), mi('Check for updates\u2026', '', function () { if (window.MGXUpdate) window.MGXUpdate.check(); }), { sep: true },
     mi('ManimGX documentation', '', function () { openUrl('https://manimgx.academa.ai/'); }), mi('Manim documentation', '', function () { openUrl('https://docs.manim.community/'); }), { sep: true },
     mi('About Manimo', '', function () { openDialog('aboutDlg'); })
   ];
@@ -1386,7 +1392,7 @@ window.MANIMO = {
   applySettings: function (s) { if (!s) return; if (s.quality) S.quality = s.quality; S.shape = s.shape || 'auto'; if (s.fps) S.fps = s.fps; if (s.encoding) S.encoding = s.encoding; if (s.voice) { VOICE.id = s.voice; store('mgx-voice', VOICE.id); } if (s.speed) { VOICE.speed = s.speed; store('mgx-voice-speed', String(VOICE.speed)); } persistSettings(); syncSettingsUI(); },
   recentVideos: function () { return history.filter(function (h) { return h.kind === 'video' && h.path; }).slice(0, 8); },
   selectScene: function (n) { selScene = n; store('mgx-scene', n); updateStatus(); },
-  outDir: function () { return outDir; },
+  outDir: function () { return outDir; }, jumpToLine: function (n) { jumpToLine(n); }, selectedScene: function () { return selScene === ALL ? '' : selScene; },
   isRendering: function () { return R.state === 'running'; }, exportsFolderOpen: function (p) { return api('/api/open-folder', { path: p }); }
 };
 boot();

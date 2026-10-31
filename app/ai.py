@@ -170,15 +170,52 @@ def valid_names():
         return {"top": [], "modules": [], "scene": [], "mobject": []}
 
 
-def skill_prompt(engine):
-    """The system prompt: role, style guide, engine rules, valid names, and worked examples."""
-    if engine in _prompt_cache:
-        return _prompt_cache[engine]
+# Extra guides are added only when the request needs them: the full pack is large and most requests need none of it.
+# Each rule: (name, words that trigger it, reference files, example files).
+_GUIDES = [
+    ("narrate", r"narrat|voice|speak|spoken|say\(|explain as it plays|teaching video|lesson video",
+     ["reveal-and-sync.md"], []),
+    ("problem", r"\bproblems?\b|\bsolve\b|solution to|free.?body|\bfbd\b|statics|truss|\bbeam\b|support reaction|friction|incline|projectile|"
+                r"kinematic|equilibrium|resultant|moment about|textbook",
+     ["problem-solving-pipeline.md", "mechanics-visuals.md", "geometry-visuals.md", "helpers.md"],
+     ["incline_block_friction.py", "beam_reactions.py"]),
+    ("theory", r"\btheory\b|derive\b|derivation|quantum|schr.dinger|thermodynamic|entropy|partition function|statistical mechanics|"
+               r"maxwell|electromagnet|relativity|lagrangian|hamiltonian|fourier|wave function|eigen|boltzmann|orbital",
+     ["theory-explainer-pipeline.md", "theory-visuals.md", "theory-playbooks.md", "theory-exam-and-mistakes.md"], []),
+    ("exam", r"first.?year|\bexam\b|\bmarks?\b|beginner|they miss steps|model answer",
+     ["first-year-exam-mode.md"], []),
+]
+_NOT_SHIPPED = re.compile(r"[^.\n]*`[\w\-]*_manimo\.py`[^.\n]*\.|\s*Worked example: `[\w\-]*_manimo\.py`[^\n]*")
+
+
+def _guide(name):
+    """A reference file, without sentences that point at example files this app does not ship."""
+    return _NOT_SHIPPED.sub("", _read("references/" + name))
+
+
+def skill_extras(text):
+    """Which guides and examples a request needs, from its words: (reference names, example names), in a stable order."""
+    t = (text or "").lower()
+    refs, examples = [], []
+    for _name, pattern, rs, es in _GUIDES:
+        if re.search(pattern, t):
+            refs += [r for r in rs if r not in refs]
+            examples += [e for e in es if e not in examples]
+    return refs, examples
+
+
+def skill_prompt(engine, request_text=""):
+    """The system prompt: role, style guide, engine rules, valid names, worked examples, and the guides this request needs."""
+    refs, extra_examples = skill_extras(request_text) if engine == "manimgx" else ([], [])
+    key = (engine, tuple(refs))
+    if key in _prompt_cache:
+        return _prompt_cache[key]
     parts = [
         "You are Manimo's animation director. You write complete, runnable Python files that explain ideas visually, "
         "the way the best maths-explainer channels do. Follow the guide below exactly.",
         _read("style_guide.md"),
         _read("manimgx.md" if engine == "manimgx" else "manim_ce.md"),
+        _read("modes.md"),
     ]
     if engine == "manimgx":
         names = valid_names()
@@ -194,12 +231,15 @@ def skill_prompt(engine):
         examples = ["unit_circle_sine.py", "pythagoras_squares.py", "derivative_tangent.py", "binary_search.py"]
     else:
         examples = ["ce_example.py"]
+    examples = examples + [e for e in extra_examples if e not in examples][:2]
     shown = []
     for ex in examples:
         shown.append(f"### Example: {ex}\n```python\n{_read('examples/' + ex).rstrip()}\n```")
     parts.append("## Worked examples (study their structure, pacing and layout)\n\n" + "\n\n".join(shown))
-    _prompt_cache[engine] = "\n\n".join(parts)
-    return _prompt_cache[engine]
+    if refs:
+        parts.append("## Guides for this request\n\n" + "\n\n".join(_guide(r).rstrip() for r in refs))
+    _prompt_cache[key] = "\n\n".join(parts)
+    return _prompt_cache[key]
 
 
 def build_user_message(req):
@@ -650,7 +690,8 @@ def run(req):
     mode = req.get("mode") or "write"
     workdir = Path(tempfile.mkdtemp(prefix="manimo-ai-"))
     try:
-        system = skill_prompt(engine)
+        recent = [str(m.get("text", "")) for m in (req.get("history") or [])[-4:] if m.get("role") == "user"]
+        system = skill_prompt(engine, " ".join([str(req.get("prompt") or "")] + recent))
         history = [m for m in (req.get("history") or []) if m.get("role") in ("user", "assistant") and str(m.get("text", "")).strip()][-12:]
         messages = [{"role": m["role"], "content": str(m["text"])[:20000]} for m in history]
         while messages and messages[0]["role"] != "user":
@@ -784,8 +825,71 @@ def job():
         return json.loads(json.dumps(_job))
 
 
+# ---------------------------------------------------------------- checking the user's own code before it is rendered
+def quick_check(code):
+    """Fast checks with no render, for code the user pasted or typed: syntax, a Scene to render, names that do not exist,
+    the engine's import, and the safety scan. Returns {"engine", "scenes", "issues": [{kind, line, text}]}."""
+    code = code or ""
+    engine = "manim" if re.search(r"^\s*(?:from|import)\s+manim\b", code, re.M) and not re.search(r"^\s*(?:from|import)\s+manimgx\b", code, re.M) else "manimgx"
+    out = {"engine": engine, "scenes": [], "issues": []}
+    if not code.strip():
+        return out
+    try:
+        compile(code, "scene.py", "exec")
+    except SyntaxError as e:
+        out["issues"].append({"kind": "error", "line": e.lineno or None, "text": f"Python cannot read this: {e.msg}" + (f" (column {e.offset})" if e.offset else "")})
+        return out
+    out["scenes"] = find_scenes(code)
+    if not out["scenes"]:
+        out["issues"].append({"kind": "error", "line": None, "text": "No scene to render: the code needs a class that extends Scene (or ThreeDScene) with a construct method."})
+    if engine == "manimgx":
+        if re.search(r"\bm\.[A-Za-z_]", code) and not re.search(r"^\s*import\s+manimgx\s+as\s+m\b", code, re.M):
+            out["issues"].append({"kind": "error", "line": 1, "text": "The code uses `m.` but does not start with `import manimgx as m`."})
+        if re.search(r"^\s*from\s+manimgx\s+import\s+\*", code, re.M):
+            out["issues"].append({"kind": "error", "line": None, "text": "ManimGX code should use `import manimgx as m` and write `m.Circle`, not `from manimgx import *`."})
+        out["issues"] += check_names(code)
+    for cls in re.finditer(r"^class\s+(\w+)\s*\(([^)]*)\)\s*:", code, re.M):
+        if cls.group(1) in out["scenes"]:
+            body = code[cls.end():]
+            nxt = re.search(r"^class\s", body, re.M)
+            if not re.search(r"^\s+def\s+construct\s*\(", body[:nxt.start()] if nxt else body, re.M):
+                out["issues"].append({"kind": "error", "line": code[:cls.start()].count("\n") + 1, "text": f"Scene {cls.group(1)} has no `def construct(self)`, so there is nothing to render."})
+    out["issues"] += scan_code(code)
+    return out
+
+
+def deep_check(code, scene=None):
+    """The same check the assistant uses on its own code: ManimGX `inspect` runs the scene and reports errors with their line and layout
+    problems (overlapping text, content outside the frame). Takes a few seconds; Manim CE gets a syntax check only."""
+    quick = quick_check(code)
+    if any(i["kind"] in ("error", "safety", "name") for i in quick["issues"]) or not quick["scenes"]:
+        return {"engine": quick["engine"], "issues": quick["issues"], "scenes": quick["scenes"], "deep": False}
+    if quick["engine"] != "manimgx":
+        return {"engine": "manim", "issues": quick["issues"], "scenes": quick["scenes"], "deep": False,
+                "note": "Manim Community Edition code is checked for syntax here. Render once to find the rest."}
+    workdir = Path(tempfile.mkdtemp(prefix="manimo-check-"))
+    try:
+        scenes = [scene] if scene in quick["scenes"] else quick["scenes"][-1:]
+        report = verify_manimgx(code, workdir, scenes)
+    except Cancelled:
+        return {"engine": "manimgx", "issues": quick["issues"], "scenes": quick["scenes"], "deep": False}
+    finally:
+        shutil.rmtree(workdir, ignore_errors=True)
+    issues = list(quick["issues"])
+    if report.get("error"):
+        issues.append({"kind": "error", "line": report["error"].get("line"), "text": report["error"]["text"]})
+    for pr in report.get("problems", []):
+        issues.append({"kind": "layout", "line": pr.get("line"), "text": pr["text"] + (f" (at {pr['t']})" if pr.get("t") else "")})
+    return {"engine": "manimgx", "issues": issues, "scenes": quick["scenes"], "deep": True, "seconds": (report.get("scenes") or [{}])[0].get("seconds")}
+
+
 def handle(method, path, body):
     """Routes used by server.py. Returns (payload, status)."""
+    if method == "POST" and path == "/api/ai/check":
+        code = str(body.get("code") or "")[:400_000]
+        if body.get("deep"):
+            return deep_check(code, body.get("scene")), 200
+        return quick_check(code), 200
     if method == "GET" and path == "/api/ai/status":
         return public_settings(), 200
     if method == "GET" and path == "/api/ai/job":

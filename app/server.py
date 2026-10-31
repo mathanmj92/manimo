@@ -25,14 +25,16 @@ import time
 import webbrowser
 import socket
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+import addon
 import ai
 import project
+import update
 import voice
 from pathlib import Path
 from urllib.request import urlopen
 
 APP_DIR = Path(__file__).resolve().parent
-VERSION = "1.9.5"
+VERSION = "1.9.6"
 FIRST_PORT = 8765
 PORT_SPAN = 11
 IDLE_EXIT_SECONDS = 120
@@ -581,7 +583,8 @@ def cancel_job():
 
 
 # ---------------------------------------------------------------- adding Manim (Community Edition) on request
-def run_install(package):
+def run_install_pip(package):
+    """Fallback when no add-on pack is published for this version: Manim itself from the package index (no LaTeX)."""
     cmd = [sys.executable, "-m", "pip", "install", package, "--disable-pip-version-check", "--progress-bar", "off",
            "--retries", "8", "--timeout", "25"]       # patient: slow or flaky connections are common
     try:
@@ -609,6 +612,37 @@ def run_install(package):
                                  if code else "Manim installed but could not be loaded.")
 
 
+def run_install():
+    """Add Manim Community Edition and LaTeX: the add-on pack from this version's GitHub release (checked against its published
+    SHA-256); if no pack is published for this version, Manim alone from the package index."""
+    def progress(step, percent=None):
+        with _lock:
+            _install["step"] = step[:110]
+            _install["log"].append(step)
+            if percent is not None:
+                _install["percent"] = round(percent, 1)
+    try:
+        addon.run(VERSION, progress, lambda: _install.get("cancel", False), project.DATA_DIR)
+    except addon.NoPack as exc:
+        with _lock:
+            _install["log"].append(str(exc))
+        run_install_pip("manim")
+        return
+    except Exception as exc:
+        with _lock:
+            _install["state"] = "error"
+            _install["error"] = str(exc) if isinstance(exc, addon.AddonError) else "Could not add Manim and LaTeX: %s" % exc
+        return
+    importlib.invalidate_caches()
+    _latex_cache.clear()
+    with _lock:
+        if engines()["manim"]:
+            _install["state"] = "done"
+        else:
+            _install["state"] = "error"
+            _install["error"] = "Manim was installed but could not be loaded."
+
+
 def start_install(body):
     if body.get("engine") != "manim":
         return {"error": "Unknown engine."}, 400
@@ -616,8 +650,8 @@ def start_install(body):
         if _install.get("state") == "running":
             return {"error": "An install is already running."}, 409
         _install.clear()
-        _install.update({"state": "running", "log": [], "step": "Contacting the package index...", "started": time.time()})
-    threading.Thread(target=run_install, args=("manim",), daemon=True).start()
+        _install.update({"state": "running", "log": [], "step": "Looking for the add-on...", "started": time.time(), "percent": 0.0, "cancel": False})
+    threading.Thread(target=run_install, daemon=True).start()
     return {"ok": True}, 200
 
 
@@ -844,6 +878,9 @@ class Handler(BaseHTTPRequestHandler):
         if path.startswith("/api/ai/"):
             payload, status = ai.handle("GET", path, {})
             return self._send(payload, status)
+        if path.startswith("/api/update/"):
+            payload, status = update.handle("GET", path, {}, VERSION)
+            return self._send(payload, status)
         if path == "/api/install":
             with _lock:
                 j = dict(_install)
@@ -875,6 +912,9 @@ class Handler(BaseHTTPRequestHandler):
             return self._send({"error": "bad json"}, 400)
         if self.path.startswith("/api/ai/"):
             payload, status = ai.handle("POST", self.path, body)
+            return self._send(payload, status)
+        if self.path.startswith("/api/update/"):
+            payload, status = update.handle("POST", self.path, body, VERSION)
             return self._send(payload, status)
         if self.path == "/api/project/import-pick":
             payload, status = pick_media()

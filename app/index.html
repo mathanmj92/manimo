@@ -22,6 +22,8 @@
 <link rel="stylesheet" href="assets/app.css">
 <link rel="stylesheet" href="assets/prompt.css">
 <link rel="stylesheet" href="assets/library.css">
+<link rel="stylesheet" href="assets/check.css">
+<link rel="stylesheet" href="assets/update.css">
 </head>
 <body>
 
@@ -95,6 +97,8 @@
     <button class="icon-btn" id="themeBtn" aria-label="Switch to light mode" title="Toggle light / dark"><svg class="ic"><use id="themeIcon" href="#i-sun"/></svg></button>
   </header>
 
+  <div class="upd-bar" id="updBar" role="status" hidden></div>
+
   <div class="toolbar" role="toolbar" aria-label="Render">
     <div class="go">
       <button class="tb-icon tip" id="projBtn" data-tip="Project: the scenes and videos of a lesson" aria-label="Project" aria-pressed="false"><svg class="ic"><use href="#i-folder"/></svg></button>
@@ -158,8 +162,10 @@
         </div>
         <div class="pane-foot">
           <span class="msg" id="sceneMsg">No code yet</span>
+          <button class="chk-pill" id="checkPill" aria-haspopup="true" aria-expanded="false" aria-controls="checkPanel" hidden></button>
           <span class="pos" id="pos">Ln 1, Col 1</span>
         </div>
+        <div class="chk-panel" id="checkPanel" role="region" aria-label="Code check" hidden></div>
       </section>
 
       <section class="dock" id="dock" data-state="idle" aria-label="Render progress" aria-live="off"></section>
@@ -415,6 +421,13 @@
           <span class="lbl">Save videos to</span>
           <div class="path-row"><div class="path" id="pathText"></div><button class="btn" id="changeFolder">Change…</button></div>
         </div>
+        <div class="field upd-set">
+          <span class="lbl">Updates <small id="updVer"></small></span>
+          <label class="chk"><input type="checkbox" id="updAuto"> Look for a newer Manimo when it starts</label>
+          <label class="chk"><input type="checkbox" id="updDown"> Download it in the background (you choose when to install)</label>
+          <div><button class="btn sm" id="updNow">Check now</button></div>
+          <p class="help">Only the version number is read from GitHub. Nothing about you or your work is sent.</p>
+        </div>
         <div class="field">
           <span class="lbl">Engines</span>
           <div class="engine-row"><div class="nm"><b>ManimGX</b><span id="engGx">Checking…</span></div></div>
@@ -653,5 +666,7 @@
 <script src="assets/project.js"></script>
 <script src="assets/prompt.js"></script>
 <script src="assets/library.js"></script>
+<script src="assets/check.js"></script>
+<script src="assets/update.js"></script>
 </body>
 </html>

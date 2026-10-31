@@ -1,0 +1,9 @@
+/* Update bar under the toolbar */
+.upd-bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 0 12px; padding: 8px 12px; border-radius: var(--r-md); background: var(--accent-soft); color: var(--text); border: 1px solid color-mix(in oklch, var(--accent) 40%, var(--line)); font-size: 13px; }
+.upd-bar[hidden] { display: none; }
+.upd-bar > span:first-child { flex: 1 1 280px; }
+.upd-acts { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; }
+.upd-prog { flex: 0 0 160px; height: 5px; border-radius: 3px; background: var(--surface-3); overflow: hidden; }
+.upd-prog i { display: block; height: 100%; background: var(--accent); transform-origin: left; }
+.upd-err { color: var(--warn); }
+.upd-set label.chk { display: flex; align-items: center; gap: 8px; margin: 4px 0; }

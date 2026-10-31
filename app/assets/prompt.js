@@ -155,6 +155,15 @@ function drawLib() {
     left.appendChild(t); left.appendChild(h('p', null, e.line));
     var acts = h('div', 'pr-acts'), open = h('button', 'btn sm', 'Open in builder'), cp = h('button', 'btn sm', 'Copy prompt');
     open.type = cp.type = 'button';
+    if (e.text) {            // a ready-made problem or theory prompt: edit it in the assistant box, or copy it
+      var use = h('button', 'btn sm primary', 'Use in Ask AI'); use.type = 'button';
+      use.setAttribute('aria-label', 'Send the prompt for ' + e.title + ' to the assistant');
+      use.addEventListener('click', function () { if (window.MGXApp) { dlg.close(); window.MGXApp.askAI(e.text); } });
+      cp.setAttribute('aria-label', 'Copy the prompt for ' + e.title);
+      cp.addEventListener('click', function () { copyText(e.text, function (ok) { flash(cp, ok, 'Select it in Ask AI', 'Copy prompt'); }); });
+      acts.appendChild(use); acts.appendChild(cp); li.appendChild(left); li.appendChild(acts); libList.appendChild(li);
+      return;
+    }
     open.setAttribute('aria-label', 'Open ' + e.title + ' in the builder'); cp.setAttribute('aria-label', 'Copy the prompt for ' + e.title);
     open.addEventListener('click', function () {
       useEntry(e); note.textContent = 'Filled in: ' + e.title + '. Change anything you like.';

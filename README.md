@@ -15,13 +15,16 @@ Then join your scenes into one finished video with narration, music and captions
 - **Render.** A ManimGX (Rust, GPU) engine draws Manim-style animations fast. Manim Community Edition is supported too, with an optional offline LaTeX bundle.
 - **Any shape.** Wide 16:9, tall 9:16, square, 4:3 and 3:4, at 480p to 4K. "Same as my code" follows the size a scene asks for.
 - **AI assistant.** Describe an idea in plain words. The assistant writes the code, checks it for errors and overlapping text, renders a test, and fixes what it finds. Use a local Claude Code agent, an Anthropic API key, or any OpenAI-compatible service. A Lesson prompt builder and library help you ask well.
-- **Narration.** Four offline voices (Adam, Echo, Nicole, Lewis) powered by Kokoro, a Narrate button that records your own voice and camera, and script export with timestamps.
+- **Narration.** Fourteen offline voices, female and male, American and British (Adam, Echo, Nicole, Heart, Bella, Emma, George and more) powered by Kokoro, a Narrate button that records your own voice and camera, and script export with timestamps.
 - **Projects.** A `.mo` project keeps scenes, renders and your timeline together, and knows which scenes are out of date.
 - **Compose.** A built-in video editor: cut, trim, fade, background music, camera overlay, voice-over, "Speak text", cover pictures, and export with chapters and subtitles. Share presets set the size for YouTube, Reels, Instagram or WhatsApp, and captions can be burned onto the picture.
 - **Edit video.** Open any single finished video in Compose, with or without a project.
 - **My videos.** Browse everything you have rendered, with cover pictures.
 - **Learn as you go.** Hover any code to see what it does, plus a Learn dialog and a command guide.
 - **Four looks.** Chalkboard, Blueprint, Paper (light) and Mint.
+- **Checks your code before you render.** Paste code and Manimo points out syntax errors, names that do not exist (with "did you mean"), a missing scene, and unsafe imports, and can run the scene to find overlapping text.
+- **Ready-made lesson prompts.** A library of problem and theory prompts (mechanics, geometry, quantum, thermodynamics, Fourier, relativity) to copy into the assistant or any AI.
+- **Stays up to date.** Manimo looks for a newer release here on GitHub, downloads it in the background, checks its checksum, and installs it only when you click.
 
 | Compose editor | AI assistant | Hover help |
 |---|---|---|

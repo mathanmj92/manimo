@@ -2,7 +2,7 @@
 ; Build with installer\Build-Manimo.ps1, which prepares the payload and compiles this script.
 
 #define AppName "Manimo"
-#define AppVersion "1.9.5"
+#define AppVersion "1.9.6"
 #define AppSlogan "Math, in motion."
 #define PyInstaller "..\build\cache\python-3.13.15-amd64.exe"
 ; the build script passes the measured size of the optional component with /DCeMB=n
@@ -80,6 +80,7 @@ Source: "requirements-ce.txt"; DestDir: "{app}\_setup"; Components: ce; Flags: i
 Source: "..\build\cache\texlive-lite\*"; DestDir: "{app}\texlive"; Components: ce; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "art\manimo.ico"; DestDir: "{app}"; Flags: ignoreversion
 Source: "THIRD-PARTY-NOTICES.txt"; DestDir: "{app}"; Flags: ignoreversion
+Source: "SOURCE-OFFER.md"; DestDir: "{app}"; Flags: ignoreversion
 
 [Registry]
 ; double-click a project.mo file to open that project in Manimo (per user, no admin needed)

@@ -2,6 +2,13 @@
 
 All notable changes to Manimo. Versions follow the installer (`installer/Manimo.iss`).
 
+## 1.9.6
+- The AI assistant uses the updated skill pack: problem-solving, theory lessons, first-year exam mode and narration guides, loaded only when a request needs them.
+- Prompt library: ready problem and theory prompts (mechanics, geometry, quantum, thermodynamics, Fourier, relativity).
+- Code check: pasted or typed code is checked before rendering (syntax, missing scene, names that do not exist, unsafe imports), with an optional layout check.
+- 14 curated Kokoro voices, grouped as female and male.
+- Update check: Manimo looks for a newer release on GitHub, downloads it in the background, verifies its checksum and offers to install it.
+- The Manim CE and LaTeX download (Settings) can use an add-on pack from the release, with a fallback.
 ## 1.9.5
 - Optional installer component **Manim Community Edition and LaTeX** (offline, about 300 MB): trimmed TeX Live, `MathTex` and `Tex` render with no network.
 - Automatic tests in `tests/` (66 fast tests, plus real-render tests behind `MANIMO_SLOW=1`).

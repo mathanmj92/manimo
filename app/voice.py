@@ -19,12 +19,23 @@ MODEL_NAME = "kokoro-v1.0.int8.onnx"
 VOICES_NAME = "voices-v1.0.bin"
 SAMPLE_RATE = 24000
 
-# id -> (label, accent, note); the first one is the default
+# id -> (label, accent, note, gender); the first one is the default. Curated from Kokoro's English voices for teaching:
+# clear, even pace, easy to follow at 0.9x to 1.1x speed. The other voices in the model file are left out on purpose.
 VOICES = {
-    "am_adam": ("Adam", "American", "Deep, steady male voice"),
-    "am_echo": ("Echo", "American", "Clear, friendly male voice"),
-    "af_nicole": ("Nicole", "American", "Soft, calm female voice"),
-    "bm_lewis": ("Lewis", "British", "Warm British male voice"),
+    "am_adam": ("Adam", "American", "Deep, steady male voice", "male"),
+    "am_echo": ("Echo", "American", "Clear, friendly male voice", "male"),
+    "am_michael": ("Michael", "American", "Confident, clear male voice", "male"),
+    "am_eric": ("Eric", "American", "Even, patient male voice", "male"),
+    "bm_lewis": ("Lewis", "British", "Warm British male voice", "male"),
+    "bm_george": ("George", "British", "Authoritative British male voice", "male"),
+    "bm_daniel": ("Daniel", "British", "Calm British male voice", "male"),
+    "af_nicole": ("Nicole", "American", "Soft, calm female voice", "female"),
+    "af_heart": ("Heart", "American", "Warm, natural female voice", "female"),
+    "af_bella": ("Bella", "American", "Bright, expressive female voice", "female"),
+    "af_sarah": ("Sarah", "American", "Clear, friendly female voice", "female"),
+    "af_sky": ("Sky", "American", "Light, youthful female voice", "female"),
+    "bf_emma": ("Emma", "British", "Clear British female voice", "female"),
+    "bf_isabella": ("Isabella", "British", "Warm British female voice", "female"),
 }
 DEFAULT_VOICE = "am_adam"
 _lock = threading.Lock()
@@ -53,7 +64,7 @@ def available():
 
 def status():
     return {"available": available(), "default": DEFAULT_VOICE,
-            "voices": [{"id": k, "label": v[0], "accent": v[1], "note": v[2]} for k, v in VOICES.items()]}
+            "voices": [{"id": k, "label": v[0], "accent": v[1], "note": v[2], "gender": v[3]} for k, v in VOICES.items()]}
 
 
 def _kokoro():

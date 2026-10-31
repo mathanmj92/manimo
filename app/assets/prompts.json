@@ -1,5 +1,5 @@
 {
- "version": 1,
+ "version": 2,
  "template": "You are an expert Manim animator and a gifted teacher in the style of 3Blue1Brown. Write ONE complete, runnable Python file that teaches the topic below so well that the audience finishes the video able to explain the idea to a friend.\n\nTOPIC: [TOPIC]\nAUDIENCE: [AUDIENCE]\nENGINE: [ENGINE]\nLENGTH: about [LENGTH]\nSTYLE: [STYLE]\nKEY EQUATIONS (use exactly these, and build them up on screen): [EQUATIONS]\nNARRATION: [NARRATION]\nMUST INCLUDE OR AVOID: [EXTRAS]\n\nSTEP 1. PLAN BEFORE YOU CODE\nWrite the plan first, in a few lines:\n- The one idea of this scene, in one sentence. If it needs \"and\", it is two scenes: pick the first.\n- 4 to 6 beats: hook (a question or a striking picture), set-up (the objects), mechanism (what moves or changes), reveal (the equation or result), wrap-up.\n- One concrete example with real numbers BEFORE any general formula. Let the numbers become the variables, then the law.\n- A colour for every quantity (for example: main object blue, the thing being measured yellow, the result green, warning or heat red). The same colour always means the same quantity.\n\nSTEP 2. WRITE THE CODE TO THESE RULES\nEngine\n- ManimGX: the first line is \"import manimgx as m\" (plus \"import numpy as np\" if used). EVERY name carries the m. prefix (m.Circle, m.Create, m.UP, m.BLUE_C, m.PI). Never write \"from manim import *\". Scenes derive from m.Scene. m.MathTex takes LaTeX-style text and needs no LaTeX installation.\n- Manim Community Edition: \"from manim import *\", scenes derive from Scene, names have no prefix.\nStructure\n- Start with a docstring: the one idea, then the beats.\n- Then imports, palette constants (named, with a short comment) and small helper functions for anything drawn more than once.\n- One Scene class. \"def construct(self) -> None\". Each beat is a commented block that starts with self.next_section(\"Beat name\", notes=\"what to say here\").\n- Name things for what they are (radius_line, trace), never obj1.\nTeaching\n- Show first, then name: the object appears, then its label, then the equation built from the picture, never pasted in fully formed.\n- Anything that varies uses a ValueTracker with always_redraw (read tracker.get_value() inside the lambda).\n- Use Transform / ReplacementTransform / TransformFromCopy for \"this becomes that\". Use TransformMatchingTex or separate MathTex parts so each symbol keeps the colour of the quantity it stands for.\n- Direct attention with Indicate, Circumscribe or Flash. Fade unrelated things down instead of adding clutter.\n- Almost no text: labels of 8 words or fewer, one caption line at a time, never a paragraph or a bullet list. A symbol, colour or arrow beats a sentence.\nMaths\n- Write formulas as raw strings: MathTex(r\"\\frac{a}{b}\"). Keep each formula short and split long ones into parts.\n- Every number on screen must be right. Compute values with Python (math or numpy) and format them; never type an approximation you have not checked. Check units and signs.\nLayout\n- The frame is about 14.2 wide and 8 tall. Keep everything inside x from -6.3 to 6.3 and y from -3.4 to 3.4.\n- Title: to_edge(UP, buff=0.35). Caption or equation: to_edge(DOWN, buff=0.45). Keep at least 0.25 of space between a label and anything else. Never put text over a shape by accident. Labels are at least font_size 22.\n- Position with to_edge, next_to, arrange and move_to rather than guessed coordinates. Walk through the final frame of every beat and check nothing overlaps or leaves the frame.\nColour\n- Follow STYLE. Use at most 4 colours, as named constants, reused everywhere. Suggested roles: calm main (BLUE_C), emphasis (YELLOW), result or \"good\" (GREEN_C), heat, error or \"bad\" (RED_C or ORANGE), guides and small text (GREY_B).\nPacing\n- Pace like a person talking: run_time 1 to 1.5 s for ordinary steps, 2 to 3 s for the key moment. self.wait(0.5) after small steps, self.wait(1.5) after a big reveal, a final self.wait(1.5). Nothing shorter than 0.4 s except tiny nudges. Fit the total to LENGTH.\nReliability (most failures come from these)\n- Use only functions and constants that really exist. Do not invent helpers.\n- Never reuse a mobject after FadeOut or Uncreate unless you add it again. Call .clear_updaters() before transforming something that has an updater. Use .copy() when the original must stay.\n- Add always_redraw objects with self.add(...) or FadeIn before animating the tracker that drives them.\n- No files, network, subprocesses, eval or exec. Randomness only with a fixed seed. Every while loop must clearly end.\n- The file must run exactly as written: every import present, every name defined.\nNarration (only when NARRATION asks for it)\n- ManimGX: use self.say(\"The slope of [the tangent] is [two x].\", m.Indicate(tangent), m.Write(label)). The sentence is spoken and each animation plays while its bracketed words are said (the brackets are not spoken). Sentences are short, one idea each, written for the ear. Do not set a voice or a key: just call self.say.\n- Manim Community Edition: put the spoken script in the notes= of each next_section instead.\n- Budget about 2.3 spoken words per second of LENGTH, and leave a short silence after every big reveal.\n\nSTEP 3. CHECK YOURSELF, THEN ANSWER\nBefore replying, silently go through this and fix anything that fails:\n[ ] One idea, stated in the docstring.   [ ] Every beat has next_section.   [ ] Every name is real and every import present.\n[ ] Palette constants at the top, colours used consistently.   [ ] Nothing overlaps or leaves the frame at the end of any beat.\n[ ] Every number and equation is correct.   [ ] Labels are short and the picture does the explaining.   [ ] Final wait is there.\n\nHOW TO ANSWER\n1. A plain-language plan: what the scene shows in 2 to 4 sentences, then the beats as a short list.\n2. ONE Python code block holding the complete file, ready to run.\n3. One to three short bullets on easy tweaks (timing, colours, numbers). No lecture on Python.",
  "fields": [
   {
@@ -144,6 +144,110 @@
    "length": "60 seconds",
    "equations": "x(t) = A\\cos(\\omega t) \\qquad \\omega = \\sqrt{k/m} \\qquad T = \\frac{2\\pi}{\\omega}",
    "extras": "Worked example: m = 1 kg, k = 4 N/m, so omega = 2 rad/s and T is about 3.14 s. Draw the spring and mass on the left, and trace x against t on the right as the mass moves."
+  },
+  {
+   "id": "pb-incline",
+   "kind": "problem",
+   "subject": "Problems",
+   "title": "Block on a rough incline",
+   "line": "Free-body diagram, components and Newton's second law.",
+   "text": "Solve this problem and teach it as a step-by-step animation.\n\nPROBLEM: A 10 kg block slides down a rough incline of 30 degrees. The coefficient of kinetic friction is 0.25 and g = 9.81 m/s^2. Find the normal force, the friction force and the acceleration of the block.\n\nSolve it completely first and check it (units, back-substitution, a sanity limit), then teach the solution as ONE step-by-step ManimGX animation a teacher can play and pause in class. Show Given and Find first, a clean redrawn figure, the method named on screen, one algebra step per beat, the answer boxed with units, and a closing check. Put the teacher's speaking note in every next_section. Compute every number in the scene with the same formulas as the answer. Narration: [NARRATION]."
+  },
+  {
+   "id": "pb-beam",
+   "kind": "problem",
+   "subject": "Problems",
+   "title": "Beam support reactions",
+   "line": "Moments and force balance on a simply supported beam.",
+   "text": "Solve this problem and teach it as a step-by-step animation.\n\nPROBLEM: A simply supported beam of length 6 m carries a point load of 12 kN at 2 m from the left support A. Find the support reactions at A and B.\n\nSolve it completely first and check it (units, back-substitution, a sanity limit), then teach the solution as ONE step-by-step ManimGX animation a teacher can play and pause in class. Show Given and Find first, a clean redrawn figure, the method named on screen, one algebra step per beat, the answer boxed with units, and a closing check. Put the teacher's speaking note in every next_section. Compute every number in the scene with the same formulas as the answer. Narration: [NARRATION]."
+  },
+  {
+   "id": "pb-projectile",
+   "kind": "problem",
+   "subject": "Problems",
+   "title": "Projectile motion",
+   "line": "Components, time of flight, range and the trajectory on axes.",
+   "text": "Solve this problem and teach it as a step-by-step animation.\n\nPROBLEM: A ball is thrown from the ground with a speed of 20 m/s at 40 degrees above the horizontal, g = 9.81 m/s^2, no air resistance. Find the time of flight, the maximum height and the range.\n\nSolve it completely first and check it (units, back-substitution, a sanity limit), then teach the solution as ONE step-by-step ManimGX animation a teacher can play and pause in class. Show Given and Find first, a clean redrawn figure, the method named on screen, one algebra step per beat, the answer boxed with units, and a closing check. Put the teacher's speaking note in every next_section. Compute every number in the scene with the same formulas as the answer. Narration: [NARRATION]."
+  },
+  {
+   "id": "pb-resultant",
+   "kind": "problem",
+   "subject": "Problems",
+   "title": "Resultant of two forces (first-year exam)",
+   "line": "Parallelogram and triangle law, written the way the exam wants it.",
+   "text": "Solve this problem and teach it as a step-by-step animation.\n\nPROBLEM: Two forces of 30 N and 40 N act at a point with 45 degrees between them. Find the magnitude and direction of their resultant by the parallelogram law and by the triangle law, and check the answer with components.\n\nAudience: first-year engineering students, exam marks. Show Given / Find / Method, name every law, and end with a model-answer page and the common traps.\n\nSolve it completely first and check it (units, back-substitution, a sanity limit), then teach the solution as ONE step-by-step ManimGX animation a teacher can play and pause in class. Show Given and Find first, a clean redrawn figure, the method named on screen, one algebra step per beat, the answer boxed with units, and a closing check. Put the teacher's speaking note in every next_section. Compute every number in the scene with the same formulas as the answer. Narration: [NARRATION]."
+  },
+  {
+   "id": "pb-atwood",
+   "kind": "problem",
+   "subject": "Problems",
+   "title": "Two masses over a pulley",
+   "line": "Tension and acceleration with two free-body diagrams.",
+   "text": "Solve this problem and teach it as a step-by-step animation.\n\nPROBLEM: Masses of 3 kg and 5 kg hang from a light string over a frictionless pulley (Atwood machine), g = 9.81 m/s^2. Find the acceleration of the masses and the tension in the string.\n\nSolve it completely first and check it (units, back-substitution, a sanity limit), then teach the solution as ONE step-by-step ManimGX animation a teacher can play and pause in class. Show Given and Find first, a clean redrawn figure, the method named on screen, one algebra step per beat, the answer boxed with units, and a closing check. Put the teacher's speaking note in every next_section. Compute every number in the scene with the same formulas as the answer. Narration: [NARRATION]."
+  },
+  {
+   "id": "pb-ladder",
+   "kind": "problem",
+   "subject": "Problems",
+   "title": "Ladder against a wall",
+   "line": "Equilibrium with friction at the floor and none at the wall.",
+   "text": "Solve this problem and teach it as a step-by-step animation.\n\nPROBLEM: A uniform ladder of weight 200 N and length 5 m leans against a smooth wall at 60 degrees to the ground. The floor has friction. Find the reactions at the wall and the floor, and the least coefficient of static friction for the ladder not to slip.\n\nSolve it completely first and check it (units, back-substitution, a sanity limit), then teach the solution as ONE step-by-step ManimGX animation a teacher can play and pause in class. Show Given and Find first, a clean redrawn figure, the method named on screen, one algebra step per beat, the answer boxed with units, and a closing check. Put the teacher's speaking note in every next_section. Compute every number in the scene with the same formulas as the answer. Narration: [NARRATION]."
+  },
+  {
+   "id": "pb-circle",
+   "kind": "problem",
+   "subject": "Problems",
+   "title": "Angle at the centre of a circle",
+   "line": "Geometry theorem, proved on screen with a draggable point.",
+   "text": "Solve this problem and teach it as a step-by-step animation.\n\nPROBLEM: Prove that the angle subtended by an arc at the centre of a circle is twice the angle subtended at any point on the remaining part of the circle. Use a numerical example with a central angle of 100 degrees, and show that the result holds when the point moves.\n\nSolve it completely first and check it (units, back-substitution, a sanity limit), then teach the solution as ONE step-by-step ManimGX animation a teacher can play and pause in class. Show Given and Find first, a clean redrawn figure, the method named on screen, one algebra step per beat, the answer boxed with units, and a closing check. Put the teacher's speaking note in every next_section. Compute every number in the scene with the same formulas as the answer. Narration: [NARRATION]."
+  },
+  {
+   "id": "th-box",
+   "kind": "theory",
+   "subject": "Theory",
+   "title": "Particle in a box",
+   "line": "Wave functions, the wall condition, the energy ladder, probability.",
+   "text": "Explain this theory topic and teach it as a classroom lesson animation.\n\nTOPIC: the particle in a one-dimensional infinite square well (quantum mechanics)\nAudience: second-year physics students preparing for exams.\n\nFirst check the content (definitions, key equations with units, limits), then build the lesson: a hook, the intuition, the law, the derivation, pictures (3D only where the third dimension carries meaning), a worked numerical example, the exam answer, and five common mistakes. Split it into one scene class per part if it is long. Narration: [NARRATION]."
+  },
+  {
+   "id": "th-tunnel",
+   "kind": "theory",
+   "subject": "Theory",
+   "title": "Quantum tunnelling",
+   "line": "A wave meets a barrier and some of it gets through.",
+   "text": "Explain this theory topic and teach it as a classroom lesson animation.\n\nTOPIC: quantum tunnelling through a rectangular potential barrier\nShow the wave function inside and beyond the barrier, how the transmission falls with width, and a numerical example.\n\nFirst check the content (definitions, key equations with units, limits), then build the lesson: a hook, the intuition, the law, the derivation, pictures (3D only where the third dimension carries meaning), a worked numerical example, the exam answer, and five common mistakes. Split it into one scene class per part if it is long. Narration: [NARRATION]."
+  },
+  {
+   "id": "th-partition",
+   "kind": "theory",
+   "subject": "Theory",
+   "title": "The partition function",
+   "line": "From Boltzmann weights to free energy and entropy.",
+   "text": "Explain this theory topic and teach it as a classroom lesson animation.\n\nTOPIC: the canonical partition function in statistical mechanics\nDerive the average energy and the free energy from Z, using a two-level system as the worked example.\n\nFirst check the content (definitions, key equations with units, limits), then build the lesson: a hook, the intuition, the law, the derivation, pictures (3D only where the third dimension carries meaning), a worked numerical example, the exam answer, and five common mistakes. Split it into one scene class per part if it is long. Narration: [NARRATION]."
+  },
+  {
+   "id": "th-maxwell",
+   "kind": "theory",
+   "subject": "Theory",
+   "title": "Maxwell's equations",
+   "line": "What each of the four equations says, with field pictures.",
+   "text": "Explain this theory topic and teach it as a classroom lesson animation.\n\nTOPIC: Maxwell's equations in free space and the electromagnetic wave\nUse 3D vector-field pictures for divergence and curl, and finish with the wave speed c from the constants.\n\nFirst check the content (definitions, key equations with units, limits), then build the lesson: a hook, the intuition, the law, the derivation, pictures (3D only where the third dimension carries meaning), a worked numerical example, the exam answer, and five common mistakes. Split it into one scene class per part if it is long. Narration: [NARRATION]."
+  },
+  {
+   "id": "th-fourier",
+   "kind": "theory",
+   "subject": "Theory",
+   "title": "Fourier series",
+   "line": "Building a square wave from sines, and why it works.",
+   "text": "Explain this theory topic and teach it as a classroom lesson animation.\n\nTOPIC: the Fourier series of a periodic function\nBuild a square wave from sine terms one at a time, show the Gibbs overshoot, and give the exam formulas for the coefficients.\n\nFirst check the content (definitions, key equations with units, limits), then build the lesson: a hook, the intuition, the law, the derivation, pictures (3D only where the third dimension carries meaning), a worked numerical example, the exam answer, and five common mistakes. Split it into one scene class per part if it is long. Narration: [NARRATION]."
+  },
+  {
+   "id": "th-relativity",
+   "kind": "theory",
+   "subject": "Theory",
+   "title": "Time dilation",
+   "line": "The light clock and the factor gamma.",
+   "text": "Explain this theory topic and teach it as a classroom lesson animation.\n\nTOPIC: time dilation and length contraction in special relativity\nDerive gamma from the light clock, then work a numerical example at 0.8c.\n\nFirst check the content (definitions, key equations with units, limits), then build the lesson: a hook, the intuition, the law, the derivation, pictures (3D only where the third dimension carries meaning), a worked numerical example, the exam answer, and five common mistakes. Split it into one scene class per part if it is long. Narration: [NARRATION]."
   }
  ],
  "followups": [
