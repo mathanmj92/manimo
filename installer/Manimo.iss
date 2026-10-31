@@ -2,7 +2,7 @@
 ; Build with installer\Build-Manimo.ps1, which prepares the payload and compiles this script.
 
 #define AppName "Manimo"
-#define AppVersion "1.9.6"
+#define AppVersion "1.9.7"
 #define AppSlogan "Math, in motion."
 #define PyInstaller "..\build\cache\python-3.13.15-amd64.exe"
 ; the build script passes the measured size of the optional component with /DCeMB=n

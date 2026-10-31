@@ -9,7 +9,7 @@ var live = M.TOKEN && M.TOKEN.indexOf('__') !== 0;
 
 function mb(n) { return n ? (n / 1048576).toFixed(0) + ' MB' : ''; }
 function paint() {
-  var s = st; if (!s) { bar.hidden = true; return; }
+  var s = st; if (!s) { bar.hidden = true; showRow(false); return; }
   var v = s.latest, html = '';
   if (s.phase === 'available') {
     html = '<span><b>Manimo ' + esc(v) + ' is available.</b> You have ' + esc(s.current) + (s.asset ? ' (' + mb(s.asset.size) + ' download).' : '.') + '</span>' +
@@ -24,7 +24,9 @@ function paint() {
   if (s.error && (s.phase === 'available' || s.phase === 'idle')) html = '<span class="upd-err">' + esc(s.error) + '</span><span class="upd-acts"><button class="icon-btn" id="updHide" aria-label="Hide"><svg class="ic"><use href="#i-x"/></svg></button></span>' + (html ? '' : '');
   bar.hidden = !html; bar.innerHTML = html;
   bar.className = 'upd-bar' + (s.phase === 'ready' ? ' ready' : '');
+  showRow(!bar.hidden);
 }
+function showRow(on) { var a = document.getElementById('app'); if (a) a.classList.toggle('has-upd', !!on); }
 function apply(s) { st = s; paint(); fillSettings(); if (s.phase === 'downloading' && !poll) poll = setInterval(refresh, 800); if (s.phase !== 'downloading' && poll) { clearInterval(poll); poll = null; } }
 function refresh() { return M.api('/api/update/status', {}).then(apply).catch(function () {}); }
 
@@ -43,7 +45,7 @@ bar.addEventListener('click', function (e) {
   var id = (e.target.closest('button') || {}).id;
   if (id === 'updGet') download();
   else if (id === 'updCancel') M.api('/api/update/cancel', {}).then(refresh);
-  else if (id === 'updHide') { bar.hidden = true; }
+  else if (id === 'updHide') { bar.hidden = true; showRow(false); }
   else if (id === 'updSkip') M.api('/api/update/skip', { version: st.latest }).then(apply);
   else if (id === 'updInstall') {
     if (M.isRendering()) { M.toast('A render is running. Install the update when it finishes.'); return; }

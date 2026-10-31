@@ -1,6 +1,8 @@
 /* Update bar under the toolbar */
 .upd-bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 0 12px; padding: 8px 12px; border-radius: var(--r-md); background: var(--accent-soft); color: var(--text); border: 1px solid color-mix(in oklch, var(--accent) 40%, var(--line)); font-size: 13px; }
 .upd-bar[hidden] { display: none; }
+.app.has-upd { grid-template-rows: auto auto auto minmax(0, 1fr); }      /* the page grid has one more row while the bar shows */
+.upd-bar { margin-top: 6px; }
 .upd-bar > span:first-child { flex: 1 1 280px; }
 .upd-acts { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; }
 .upd-prog { flex: 0 0 160px; height: 5px; border-radius: 3px; background: var(--surface-3); overflow: hidden; }

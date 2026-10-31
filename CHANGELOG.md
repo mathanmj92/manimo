@@ -2,6 +2,10 @@
 
 All notable changes to Manimo. Versions follow the installer (`installer/Manimo.iss`).
 
+## 1.9.7
+- Fixed: the code-check panel opened out of sight above the editor; it now shows above the status bar.
+- Fixed: the update bar pushed the toolbar and editor out of place while it showed.
+
 ## 1.9.6
 - The AI assistant uses the updated skill pack: problem-solving, theory lessons, first-year exam mode and narration guides, loaded only when a request needs them.
 - Prompt library: ready problem and theory prompts (mechanics, geometry, quantum, thermodynamics, Fourier, relativity).

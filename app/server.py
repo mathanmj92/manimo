@@ -34,7 +34,7 @@ from pathlib import Path
 from urllib.request import urlopen
 
 APP_DIR = Path(__file__).resolve().parent
-VERSION = "1.9.6"
+VERSION = "1.9.7"
 FIRST_PORT = 8765
 PORT_SPAN = 11
 IDLE_EXIT_SECONDS = 120

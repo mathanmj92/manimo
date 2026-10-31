@@ -5,7 +5,8 @@
 .chk-pill.ok { color: var(--good, var(--accent-text)); border-color: color-mix(in oklch, var(--good, var(--accent)) 45%, var(--line)); }
 .chk-pill.warn { color: var(--warn); border-color: var(--warn); background: var(--warn-soft); }
 .chk-pill.busy { color: var(--text-3); }
-.chk-panel { position: absolute; left: 8px; right: 8px; bottom: calc(100% + 6px); z-index: 20; max-height: 46%; overflow: auto; padding: 12px 14px; border-radius: var(--r-md); background: var(--surface); border: 1px solid var(--line-strong); box-shadow: var(--sh-pop); }
+.editor { position: relative; }
+.chk-panel { position: absolute; left: 10px; right: 10px; bottom: 44px; z-index: 20; max-height: 46%; overflow: auto; padding: 12px 14px; border-radius: var(--r-md); background: var(--surface); border: 1px solid var(--line-strong); box-shadow: var(--sh-pop); }
 .chk-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 6px; }
 .chk-list { list-style: none; margin: 0 0 10px; padding: 0; display: grid; gap: 8px; }
 .chk-list li { padding-left: 10px; border-left: 3px solid var(--warn); font-size: 13px; line-height: 1.45; overflow-wrap: anywhere; }
