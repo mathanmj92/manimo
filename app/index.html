@@ -24,6 +24,7 @@
 <link rel="stylesheet" href="assets/library.css">
 <link rel="stylesheet" href="assets/check.css">
 <link rel="stylesheet" href="assets/update.css">
+<link rel="stylesheet" href="assets/layout.css">
 </head>
 <body>
 
@@ -89,15 +90,21 @@
     <nav class="menubar" role="menubar" aria-label="Main menu">
       <button class="menubtn" role="menuitem" aria-haspopup="menu" aria-expanded="false" data-menu="file">File</button>
       <button class="menubtn" role="menuitem" aria-haspopup="menu" aria-expanded="false" data-menu="edit">Edit</button>
+      <button class="menubtn" role="menuitem" aria-haspopup="menu" aria-expanded="false" data-menu="view">View</button>
       <button class="menubtn" role="menuitem" aria-haspopup="menu" aria-expanded="false" data-menu="session">Session</button>
       <button class="menubtn" role="menuitem" aria-haspopup="menu" aria-expanded="false" data-menu="help">Help</button>
     </nav>
     <div class="spacer"></div>
     <div class="pill engine-pill" id="enginePill" role="status"><i></i><span class="t" id="engineText">Checking…</span></div>
     <button class="icon-btn" id="themeBtn" aria-label="Switch to light mode" title="Toggle light / dark"><svg class="ic"><use id="themeIcon" href="#i-sun"/></svg></button>
+    <div class="win-ctl" id="winCtl" hidden>
+      <button type="button" data-win="min" aria-label="Minimize" title="Minimize"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 6h8"/></svg></button>
+      <button type="button" data-win="max" aria-label="Maximize or restore" title="Maximize"><svg viewBox="0 0 12 12" aria-hidden="true"><rect x="2.5" y="2.5" width="7" height="7" rx="1"/></svg></button>
+      <button type="button" class="win-close" data-win="close" aria-label="Close" title="Close"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 2.5l7 7M9.5 2.5l-7 7"/></svg></button>
+    </div>
   </header>
 
-  <div class="upd-bar" id="updBar" role="status" hidden></div>
+  <div class="upd-pop" id="updBar" role="status" aria-live="polite" hidden></div>
 
   <div class="toolbar" role="toolbar" aria-label="Render">
     <div class="go">
@@ -127,6 +134,16 @@
       <button role="tab" id="tabPreview" aria-selected="false">Preview</button>
     </div>
 
+
+    <nav class="actbar" id="actBar" aria-label="Views">
+      <button class="act" data-act="proj" aria-label="Project"><svg class="ic"><use href="#i-folder"/></svg><span class="act-tip">Project</span></button>
+      <button class="act" data-act="ai" aria-label="Assistant"><svg class="ic"><use href="#i-spark"/></svg><span class="act-tip">Assistant</span></button>
+      <button class="act" data-act="prompt" aria-label="Lesson prompts"><svg class="ic"><use href="#i-book"/></svg><span class="act-tip">Lesson prompts</span></button>
+      <button class="act" data-act="videos" aria-label="My videos"><svg class="ic"><use href="#i-film"/></svg><span class="act-tip">My videos</span></button>
+      <button class="act" data-act="voice" aria-label="Voices"><svg class="ic"><use href="#i-wave"/></svg><span class="act-tip">Voices</span></button>
+      <span class="spacer"></span>
+      <button class="act" data-act="settings" aria-label="Settings"><svg class="ic"><use href="#i-sliders"/></svg><span class="act-tip">Settings</span></button>
+    </nav>
 
     <aside class="side side-proj" id="projSide" aria-label="Project" hidden>
       <div class="side-head"><svg class="ic sm"><use href="#i-folder"/></svg><span>Project</span><span class="spacer"></span>
@@ -230,20 +247,35 @@
             <button class="chip sm" data-q="improve">Improve the layout</button>
             <button class="chip sm" data-q="prompt" title="Build a lesson prompt, or pick one from the library">Lesson prompt</button>
           </div>
+          <div class="chat-img" id="chatImg" role="status" aria-live="polite" hidden></div>
           <div class="chat-box">
+            <button class="icon-btn tip" id="chatAttach" data-tip="Attach a picture of a problem" aria-label="Attach a picture of a problem"><svg class="ic"><use href="#i-clip"/></svg></button>
+            <input type="file" id="chatFile" accept="image/*" hidden>
             <textarea id="chatInput" rows="2" placeholder="Describe the animation you want, or ask for a change…" aria-label="Message to the assistant"></textarea>
             <button class="btn primary" id="chatSend" aria-label="Send"><svg class="ic"><use href="#i-send"/></svg></button>
           </div>
           <div class="chat-opts">
             <label class="chk"><input type="checkbox" id="useCode" checked> Use my code</label>
+            <label class="chk" title="For a problem to solve: the assistant shows the worked solution first, and animates it only after you say it looks right"><input type="checkbox" id="solveFirst" checked> Solve first</label>
             <label class="chip sm" id="aiEngineChip"><span class="k">Write for</span><select id="aiEngine" aria-label="Engine to write for"><option value="manimgx">ManimGX</option><option value="manim">Manim</option></select></label>
             <span class="spacer"></span><span class="chat-model" id="chatModel"></span>
           </div>
+          <p class="chat-est" id="chatEst" aria-live="polite"></p>
         </div>
       </div>
       <div class="side-foot" id="aiFoot"></div>
     </aside>
   </main>
+
+  <footer class="statusbar" id="statusBar" aria-label="Status">
+    <button id="sbEngine" title="Engine status"></button>
+    <button id="sbQuality" title="Quality and shape"></button>
+    <button id="sbVoice" title="Narration voice"></button>
+    <span class="spacer"></span>
+    <button id="sbProblems" title="Code check" hidden></button>
+    <button id="sbUpdate" title="Update" hidden></button>
+    <span id="sbPos"></span>
+  </footer>
 </div>
 
 <!-- New project -->
@@ -437,6 +469,20 @@
         </div>
       </section>
       <section data-pane="look" hidden>
+        <fieldset class="field">
+          <legend>Layout</legend>
+          <div class="seg seg-wrap" role="radiogroup" aria-label="Layout" data-key="layout">
+            <button role="radio" data-v="classic">Classic</button><button role="radio" data-v="vscode">VS Code</button><button role="radio" data-v="stacked">Top and bottom</button><button role="radio" data-v="previewleft">Preview first</button><button role="radio" data-v="cinema">Cinema</button>
+          </div>
+          <p class="help" id="layoutHelp"></p>
+        </fieldset>
+        <fieldset class="field">
+          <legend>Interface size</legend>
+          <div class="seg" role="radiogroup" aria-label="Interface size" data-key="uiSize">
+            <button role="radio" data-v="compact">Compact</button><button role="radio" data-v="normal">Normal</button><button role="radio" data-v="large">Large</button>
+          </div>
+          <p class="help">Compact fits more on the screen. Normal and Large make everything bigger.</p>
+        </fieldset>
         <fieldset class="field">
           <legend>Look</legend>
           <div class="looks" role="radiogroup" aria-label="Look" data-key="theme">
@@ -668,5 +714,7 @@
 <script src="assets/library.js"></script>
 <script src="assets/check.js"></script>
 <script src="assets/update.js"></script>
+<script src="assets/layout.js"></script>
+<script src="assets/winctl.js"></script>
 </body>
 </html>

@@ -67,6 +67,58 @@ def windows_setup():
         return 1.0, None
 
 
+_keep = []   # the window procedure must stay alive as long as the window does
+
+
+def hide_title_bar(form, log):
+    """Take Windows' own title bar away and keep everything else (resize edges, snap, shadow), so Manimo's top bar is the only one."""
+    import ctypes
+    from ctypes import wintypes
+    user32 = ctypes.windll.user32
+    LRESULT = ctypes.c_ssize_t
+    WNDPROC = ctypes.WINFUNCTYPE(LRESULT, wintypes.HWND, wintypes.UINT, wintypes.WPARAM, wintypes.LPARAM)
+    user32.SetWindowLongPtrW.argtypes = [wintypes.HWND, ctypes.c_int, ctypes.c_void_p]
+    user32.SetWindowLongPtrW.restype = ctypes.c_void_p
+    user32.CallWindowProcW.argtypes = [ctypes.c_void_p, wintypes.HWND, wintypes.UINT, wintypes.WPARAM, wintypes.LPARAM]
+    user32.CallWindowProcW.restype = LRESULT
+    hwnd = wintypes.HWND(form.Handle.ToInt64())
+    old = {}
+
+    def proc(h, msg, wparam, lparam):
+        if msg == 0x0083 and wparam:                         # WM_NCCALCSIZE: let Windows lay out the borders, then give the title bar's height back
+            rect = ctypes.cast(lparam, ctypes.POINTER(wintypes.RECT))
+            top = rect[0].top
+            res = user32.CallWindowProcW(old["proc"], h, msg, wparam, lparam)
+            rect[0].top = top
+            return res
+        return user32.CallWindowProcW(old["proc"], h, msg, wparam, lparam)
+
+    cb = WNDPROC(proc)
+    _keep.append(cb)
+    old["proc"] = user32.SetWindowLongPtrW(hwnd, -4, ctypes.cast(cb, ctypes.c_void_p))
+    user32.SetWindowPos(hwnd, None, 0, 0, 0, 0, 0x37)        # FRAMECHANGED | NOMOVE | NOSIZE | NOZORDER | NOACTIVATE
+    return hwnd
+
+
+def window_actions(form, hwnd):
+    import ctypes
+    from System import Action
+    user32 = ctypes.windll.user32
+
+    def move():
+        user32.ReleaseCapture()
+        user32.SendMessageW(hwnd, 0x00A1, 2, 0)               # WM_NCLBUTTONDOWN on the caption: Windows runs the move until the button is released
+
+    def do(action):
+        if action == "min":
+            user32.ShowWindow(hwnd, 6)
+        elif action == "max":
+            user32.ShowWindow(hwnd, 9 if user32.IsZoomed(hwnd) else 3)
+        elif action == "drag":
+            form.BeginInvoke(Action(move))                    # on the window's own thread, which is where the mouse is tracked
+    return do
+
+
 def fallback(httpd, url):
     server.open_window(url)
     try:
@@ -134,12 +186,34 @@ def main():
 
     icon = find_icon()
 
+    def install_chrome(win):
+        if "--native-title" in sys.argv:
+            return
+        for _ in range(60):
+            try:
+                import clr  # noqa: F401
+                form = win.native
+                if form is not None and form.IsHandleCreated:
+                    from System import Action
+                    box = {}
+                    form.Invoke(Action(lambda: box.update(hwnd=hide_title_bar(form, log))))
+                    do = window_actions(form, box["hwnd"])
+                    server.HOOKS["window"].append(lambda a: (log(f"window action {a}"), window.destroy() if a == "close" else do(a)))
+                    server.CHROME["custom"] = True
+                    log("own title bar buttons on")
+                    return
+            except Exception as exc:
+                log(f"could not hide the title bar: {exc!r}")
+                return
+            time.sleep(0.25)
+
     def after_start(win):
         try:
             import media_permission
             threading.Thread(target=media_permission.install, args=(win, log), daemon=True).start()
         except Exception as exc:
             log(f"media permission setup failed: {exc!r}")
+        threading.Thread(target=install_chrome, args=(win,), daemon=True).start()
         if not icon:
             return
         last = None

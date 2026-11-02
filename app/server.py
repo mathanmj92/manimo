@@ -34,7 +34,7 @@ from pathlib import Path
 from urllib.request import urlopen
 
 APP_DIR = Path(__file__).resolve().parent
-VERSION = "1.9.7"
+VERSION = "1.9.10"
 FIRST_PORT = 8765
 PORT_SPAN = 11
 IDLE_EXIT_SECONDS = 120
@@ -115,7 +115,8 @@ _served = {}                       # random id -> directory whose files the prev
 _last_ping = time.time()
 _pinged = False
 _pending_project = None   # a project.mo the user double-clicked while Manimo was already open
-HOOKS = {"focus": [], "quit": []}   # the desktop window registers callbacks here
+HOOKS = {"focus": [], "quit": [], "window": []}   # the desktop window registers callbacks here
+CHROME = {"custom": False}   # True once the desktop window has hidden Windows' own title bar (Manimo draws the buttons)
 
 
 # ---------------------------------------------------------------- engines
@@ -754,6 +755,15 @@ def open_url(body):
     return {"ok": True}, 200
 
 
+def window_action(body):
+    action = str((body or {}).get("action", ""))
+    if action not in ("min", "max", "close", "drag"):
+        return {"error": "Unknown window action."}, 400
+    for fn in HOOKS["window"]:
+        fn(action)
+    return {"ok": True}, 200
+
+
 def quit_app():
     for fn in HOOKS["quit"]:
         threading.Thread(target=fn, daemon=True).start()
@@ -863,6 +873,8 @@ class Handler(BaseHTTPRequestHandler):
             for fn in HOOKS["focus"]:
                 threading.Thread(target=fn, daemon=True).start()
             return self._send({"ok": True})
+        if path == "/api/chrome":
+            return self._send({"custom": CHROME["custom"]})
         if path == "/api/status":
             tex = latex_info()
             return self._send({
@@ -939,6 +951,7 @@ class Handler(BaseHTTPRequestHandler):
             "/api/library": lambda: library_list(body),
             "/api/video-meta": lambda: video_meta(body),
             "/api/quit": quit_app,
+            "/api/window": lambda: window_action(body),
         }
         handler = routes.get(self.path)
         if handler is None:

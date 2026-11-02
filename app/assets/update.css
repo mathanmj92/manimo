@@ -1,11 +1,17 @@
-/* Update bar under the toolbar */
-.upd-bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 0 12px; padding: 8px 12px; border-radius: var(--r-md); background: var(--accent-soft); color: var(--text); border: 1px solid color-mix(in oklch, var(--accent) 40%, var(--line)); font-size: 13px; }
-.upd-bar[hidden] { display: none; }
-.app.has-upd { grid-template-rows: auto auto auto minmax(0, 1fr); }      /* the page grid has one more row while the bar shows */
-.upd-bar { margin-top: 6px; }
-.upd-bar > span:first-child { flex: 1 1 280px; }
-.upd-acts { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; }
-.upd-prog { flex: 0 0 160px; height: 5px; border-radius: 3px; background: var(--surface-3); overflow: hidden; }
-.upd-prog i { display: block; height: 100%; background: var(--accent); transform-origin: left; }
+/* Update popup: bottom left, above the render strip. It floats, so it never moves the page. */
+.upd-pop { position: fixed; z-index: 90; left: 14px; bottom: 84px; width: min(340px, calc(100vw - 28px)); padding: 12px 14px; border-radius: var(--r-lg); background: var(--surface); border: 1px solid var(--line-strong); box-shadow: var(--sh-pop); font-size: 13px; display: grid; gap: 8px; }
+.upd-pop[hidden] { display: none; }
+.upd-pop.ready { border-color: var(--accent); }
+.upd-pop p { margin: 0; color: var(--text-2); line-height: 1.45; }
+.upd-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.upd-top b { font-weight: 650; }
+.upd-top .icon-btn { margin: -4px -6px -4px 0; }
+.upd-pc { font: 600 12px var(--mono, Consolas, monospace); color: var(--text-2); }
+.upd-acts { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.upd-prog { height: 5px; border-radius: 3px; background: var(--surface-3); overflow: hidden; }
+.upd-prog i { display: block; height: 100%; background: var(--accent); transform-origin: left; transition: transform .4s linear; }
 .upd-err { color: var(--warn); }
+.upd-pop.folded { width: auto; padding: 0; border-radius: 999px; }
+.upd-chip { border: 0; background: none; color: var(--text); font: 600 12px var(--font-ui); padding: 7px 14px; cursor: pointer; border-radius: 999px; }
+.upd-chip:hover { background: var(--surface-3); }
 .upd-set label.chk { display: flex; align-items: center; gap: 8px; margin: 4px 0; }

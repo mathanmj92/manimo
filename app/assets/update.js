@@ -8,25 +8,31 @@ var $ = M.$, esc = M.esc, poll = null, st = null;
 var live = M.TOKEN && M.TOKEN.indexOf('__') !== 0;
 
 function mb(n) { return n ? (n / 1048576).toFixed(0) + ' MB' : ''; }
+var folded = false, foldedFor = '';          // "Run in background": the card folds to a small chip; the download carries on
+function xbtn(id, label) { return '<button class="icon-btn" id="' + id + '" aria-label="' + label + '" title="' + label + '"><svg class="ic"><use href="#i-x"/></svg></button>'; }
 function paint() {
-  var s = st; if (!s) { bar.hidden = true; showRow(false); return; }
-  var v = s.latest, html = '';
+  var s = st; if (!s) { bar.hidden = true; return; }
+  var v = s.latest, html = '', chip = '', key = s.phase + ':' + v;
+  if (key !== foldedFor && s.phase !== 'downloading') folded = false;      // a new stage deserves a look
   if (s.phase === 'available') {
-    html = '<span><b>Manimo ' + esc(v) + ' is available.</b> You have ' + esc(s.current) + (s.asset ? ' (' + mb(s.asset.size) + ' download).' : '.') + '</span>' +
-      '<span class="upd-acts"><button class="btn sm primary" id="updGet">Download</button><button class="btn sm ghost" id="updSkip">Skip this version</button><button class="icon-btn" id="updHide" aria-label="Hide"><svg class="ic"><use href="#i-x"/></svg></button></span>';
+    html = '<div class="upd-top"><b>Manimo ' + esc(v) + ' is available</b>' + xbtn('updHide', 'Close') + '</div><p>You have ' + esc(s.current) + (s.asset ? '. The download is ' + mb(s.asset.size) + '.' : '.') + '</p>' +
+      '<div class="upd-acts"><button class="btn sm primary" id="updGet">Download</button><button class="btn sm ghost" id="updSkip">Skip this version</button></div>';
   } else if (s.phase === 'downloading') {
-    html = '<span><b>Downloading Manimo ' + esc(v) + '…</b> ' + Math.floor(s.percent || 0) + '%</span><span class="upd-prog"><i style="transform:scaleX(' + ((s.percent || 0) / 100) + ')"></i></span>' +
-      '<span class="upd-acts"><button class="btn sm ghost" id="updCancel">Cancel</button></span>';
+    var pc = Math.floor(s.percent || 0);
+    html = '<div class="upd-top"><b>Downloading Manimo ' + esc(v) + '</b><span class="upd-pc">' + pc + '%</span></div><div class="upd-prog"><i style="transform:scaleX(' + (pc / 100) + ')"></i></div>' +
+      '<p>You can keep working. It checks the file when it finishes.</p><div class="upd-acts"><button class="btn sm" id="updFold">Run in background</button><button class="btn sm ghost" id="updCancel">Cancel</button></div>';
+    chip = 'Downloading update ' + pc + '%';
   } else if (s.phase === 'ready') {
-    html = '<span><b>Manimo ' + esc(v) + ' is ready to install.</b> It was checked against its published checksum. Manimo closes while it installs, and your code is kept.</span>' +
-      '<span class="upd-acts"><button class="btn sm primary" id="updInstall">Install and restart</button><button class="icon-btn" id="updHide" aria-label="Hide"><svg class="ic"><use href="#i-x"/></svg></button></span>';
+    html = '<div class="upd-top"><b>Manimo ' + esc(v) + ' is ready</b>' + xbtn('updFold', 'Later') + '</div><p>Checked against its published checksum. Manimo closes while it installs, and your code is kept.</p>' +
+      '<div class="upd-acts"><button class="btn sm primary" id="updInstall">Install and restart</button><button class="btn sm ghost" id="updFold">Later</button></div>';
+    chip = 'Update ready to install';
   }
-  if (s.error && (s.phase === 'available' || s.phase === 'idle')) html = '<span class="upd-err">' + esc(s.error) + '</span><span class="upd-acts"><button class="icon-btn" id="updHide" aria-label="Hide"><svg class="ic"><use href="#i-x"/></svg></button></span>' + (html ? '' : '');
-  bar.hidden = !html; bar.innerHTML = html;
-  bar.className = 'upd-bar' + (s.phase === 'ready' ? ' ready' : '');
-  showRow(!bar.hidden);
+  if (s.error && (s.phase === 'available' || s.phase === 'idle')) html = '<div class="upd-top"><b>Update problem</b>' + xbtn('updHide', 'Close') + '</div><p class="upd-err">' + esc(s.error) + '</p>', chip = '';
+  if (!html) { bar.hidden = true; return; }
+  bar.hidden = false;
+  if (folded && chip) { bar.className = 'upd-pop folded'; bar.innerHTML = '<button class="upd-chip" id="updOpen">' + esc(chip) + '</button>'; }
+  else { bar.className = 'upd-pop' + (s.phase === 'ready' ? ' ready' : ''); bar.innerHTML = html; }
 }
-function showRow(on) { var a = document.getElementById('app'); if (a) a.classList.toggle('has-upd', !!on); }
 function apply(s) { st = s; paint(); fillSettings(); if (s.phase === 'downloading' && !poll) poll = setInterval(refresh, 800); if (s.phase !== 'downloading' && poll) { clearInterval(poll); poll = null; } }
 function refresh() { return M.api('/api/update/status', {}).then(apply).catch(function () {}); }
 
@@ -43,9 +49,11 @@ function download() { return M.api('/api/update/download', {}).then(refresh).cat
 
 bar.addEventListener('click', function (e) {
   var id = (e.target.closest('button') || {}).id;
-  if (id === 'updGet') download();
+  if (id === 'updFold') { folded = true; foldedFor = (st.phase + ':' + st.latest); paint(); }
+  else if (id === 'updOpen') { folded = false; paint(); }
+  else if (id === 'updGet') download();
   else if (id === 'updCancel') M.api('/api/update/cancel', {}).then(refresh);
-  else if (id === 'updHide') { bar.hidden = true; showRow(false); }
+  else if (id === 'updHide') { bar.hidden = true; }
   else if (id === 'updSkip') M.api('/api/update/skip', { version: st.latest }).then(apply);
   else if (id === 'updInstall') {
     if (M.isRendering()) { M.toast('A render is running. Install the update when it finishes.'); return; }

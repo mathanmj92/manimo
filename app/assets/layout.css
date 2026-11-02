@@ -1,0 +1,37 @@
+/* Layouts: Classic (the default), VS Code, Top and bottom, Preview first, Cinema.
+   They only rearrange what is already on the page. Below 1000 px wide the page switches to its Code / Preview tabs as before. */
+.actbar, .statusbar { display: none; }
+@media (min-width: 1001px) {
+  /* Top and bottom: code above, preview below. --left holds the code's share of the height */
+  #app[data-layout="stacked"] .stage-split { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(150px, var(--left, 52%)) 12px minmax(150px, 1fr); }
+  #app[data-layout="stacked"] .splitter { cursor: row-resize; }
+  #app[data-layout="stacked"] .splitter::after { width: 44px; height: 4px; margin: -2px 0 0 -22px; }
+  /* Preview first: the preview on the left. --left holds the code's share of the width */
+  #app[data-layout="previewleft"] .stage-split { grid-template-columns: minmax(280px, 1fr) 12px minmax(340px, var(--left, 56%)); }
+  #app[data-layout="previewleft"] .right { order: 1; }
+  #app[data-layout="previewleft"] .splitter { order: 2; }
+  #app[data-layout="previewleft"] .left { order: 3; }
+  /* Cinema: a wide preview and a narrow code column */
+  #app[data-layout="cinema"] .stage-split { grid-template-columns: minmax(300px, var(--left, 32%)) 12px minmax(320px, 1fr); }
+
+  /* VS Code: an activity bar of views on the left and a status bar along the bottom */
+  #app[data-layout="vscode"] { grid-template-rows: auto auto minmax(0, 1fr) 24px; }
+  #app[data-layout="vscode"] .workspace { padding-left: 0; gap: 0; }
+  #app[data-layout="vscode"] .actbar { display: flex; flex-direction: column; align-items: center; gap: 2px; flex: none; width: 48px; padding: 6px 0; margin-right: 10px; background: var(--surface); border-right: 1px solid var(--line); }
+  #app[data-layout="vscode"] .side-proj { margin-right: 10px; }
+  #app[data-layout="vscode"] .statusbar { display: flex; align-items: center; gap: 2px; padding: 0 8px; background: var(--accent); color: var(--on-accent); font-size: 12px; min-width: 0; }
+  #app[data-layout="vscode"] #projBtn, #app[data-layout="vscode"] #aiBtn, #app[data-layout="vscode"] #settingsBtn { display: none; }
+}
+.act { position: relative; width: 40px; height: 40px; display: grid; place-items: center; border: 0; border-left: 2px solid transparent; border-radius: 0; background: none; color: var(--text-3); cursor: pointer; padding: 0; }
+.act:hover { color: var(--text); background: var(--surface-3); }
+.act.on { color: var(--text); border-left-color: var(--accent); }
+.act:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.act .act-tip { display: none; position: absolute; left: 46px; top: 50%; transform: translateY(-50%); z-index: 70; white-space: nowrap; padding: 4px 9px; border-radius: 6px; background: var(--surface-3); color: var(--text); border: 1px solid var(--line-strong); font-size: 12px; pointer-events: none; }
+.act:hover .act-tip, .act:focus-visible .act-tip { display: block; }
+.actbar .spacer { flex: 1; }
+.statusbar button { border: 0; background: none; color: inherit; font: inherit; padding: 0 8px; height: 24px; border-radius: 0; cursor: pointer; white-space: nowrap; }
+.statusbar button:hover { background: rgb(0 0 0 / .16); }
+.statusbar button[hidden] { display: none; }
+.statusbar .spacer { flex: 1; }
+.statusbar #sbPos { padding: 0 8px; opacity: .9; }
+.seg.seg-wrap { flex-wrap: wrap; }

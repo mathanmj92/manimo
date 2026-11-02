@@ -2,6 +2,23 @@
 
 All notable changes to Manimo. Versions follow the installer (`installer/Manimo.iss`).
 
+## 1.9.10
+- **Pictures of problems cost far less.** Attach, paste or drop a picture in the assistant. It is shrunk on your PC and read once into text by a short request; you check and correct the text, and the picture is never sent again.
+- **Solve first, then animate.** For a new problem the assistant first gives a short worked solution (about 800 tokens). Press "Looks right: animate it" to get the animation, or "I will correct it". The switch "Solve first" turns this off.
+- **Token estimate** under the message box shows roughly what a send will cost before you press Send.
+- **One top bar.** Windows' own title bar is gone; minimize, maximize and close now sit in Manimo's own bar. Drag the empty part of the bar to move the window, double-click it to maximize or restore. Edge and corner resizing and window snapping still work. (`--native-title` brings the Windows bar back.)
+- Fixed: a saved assistant model name the Claude Code agent does not know (such as `sonnet5.5`) no longer stops requests; Manimo retries with the agent's default model.
+
+## 1.9.9
+- **Layouts** (View menu, or Settings, Look): Classic, VS Code (an activity bar of views on the left and a status bar along the bottom), Top and bottom, Preview first, and Cinema (a big preview with a narrow code column). Each remembers its own split, and you can drag the divider in all of them.
+- A View menu with the layouts, interface size, and the Project and Assistant panels.
+
+## 1.9.8
+- **Interface size** (Settings, Look): Compact (the new default, about 10% smaller so more fits on the screen), Normal and Large.
+- The update message is now a small popup at the bottom left. It shows the download progress, can be folded away (Run in background) while the download carries on, and offers Install and restart when it is ready. It no longer moves the page.
+- Fixed: the layout check wrongly reported an error for scenes that use `self.voiceover`. The assistant's own self-check had the same flaw.
+- Tests for the code check and the skill modes.
+
 ## 1.9.7
 - Fixed: the code-check panel opened out of sight above the editor; it now shows above the status bar.
 - Fixed: the update bar pushed the toolbar and editor out of place while it showed.

@@ -242,6 +242,38 @@ def skill_prompt(engine, request_text=""):
     return _prompt_cache[key]
 
 
+SOLVE_SYSTEM = (
+    "You are a careful physics and mathematics teacher. Solve the problem the user gives, then check it. "
+    "Reply in plain text only: no code and no animation yet. Use exactly this layout:\n"
+    "Given: every value with its unit.\nFind: what is asked.\nMethod: the principle or law you use, by name.\n"
+    "Steps: numbered, one equation per step, units on every line.\nAnswer: the final values with units, to 3 significant figures.\n"
+    "Check: one independent check (units, a limit, or substituting back).\n"
+    "If a value is unreadable or ambiguous say which one and what you assumed. Never state a number you have not worked out. Keep it under 350 words.")
+READ_SYSTEM = (
+    "You read a photo or screenshot of a physics, engineering, maths or science problem and write it down as plain text. Do NOT solve it. "
+    "Reply with exactly these lines and nothing else:\n"
+    "Problem: the full statement, word for word.\nGiven: every number with its unit, copied exactly.\nFind: what is asked.\n"
+    "Figure: what the diagram shows (bodies, supports, ropes, angles with the line each is measured from, dimensions, loads, which way is up).\n"
+    "Unclear: anything blurred or missing, and what you assumed. Write [unreadable] for a value you cannot read. Never guess a number silently.")
+
+
+def solve_prompt():
+    """The system prompt for the 'solve first' step: short, with only the solving stages of the problem guide."""
+    guide = _guide("problem-solving-pipeline.md")
+    cut = guide.find("## Stage 4")
+    return SOLVE_SYSTEM + "\n\n" + (guide[:cut] if cut > 0 else guide)
+
+
+EDIT_VERBS = re.compile(r"^\s*(fix|change|make|improve|add|remove|slow|speed|rename|move|colou?r|shorten|lengthen)\b", re.I)
+
+
+def wants_solve_first(req, mode):
+    """Solve-first applies to a new problem to solve (not to an edit of existing code) when the user left it switched on."""
+    text = str(req.get("prompt") or "")
+    return (bool(req.get("solve_first")) and mode in ("write", "edit") and len(text) >= 40 and not EDIT_VERBS.match(text)
+            and "problem-solving-pipeline.md" in skill_extras(text)[0])
+
+
 def build_user_message(req):
     """The latest user turn, with the editor's context attached."""
     mode, text = req.get("mode", "write"), (req.get("prompt") or "").strip()
@@ -260,6 +292,7 @@ def build_user_message(req):
         "improve": "Improve the visual quality of <current_code> (layout, pacing, colour, clarity) without changing what it teaches. Return the complete file.",
         "explain": "Explain <current_code> in plain language for someone who does not know Python. Do not return code.",
         "chat": "Answer the question. Only return code if it is asked for.",
+        "solve": "Solve the problem in <request> completely and check it. Reply in plain text only (no code, no animation yet), under 350 words.",
     }.get(mode, "")
     blocks.append(f"<request>\n{text or guide}\n</request>")
     if text and guide:
@@ -333,7 +366,17 @@ def stream_openai(cfg, system, messages, on_delta, max_tokens=MAX_TOKENS):
     for m in messages:
         content = m["content"]
         if isinstance(content, list):
-            content = "\n".join(p.get("text", "") for p in content if p.get("type") == "text")
+            if any(p.get("type") == "image" for p in content):          # a service that can see pictures: send it the OpenAI way
+                parts = []
+                for p in content:
+                    if p.get("type") == "image":
+                        s = p["source"]
+                        parts.append({"type": "image_url", "image_url": {"url": "data:%s;base64,%s" % (s["media_type"], s["data"])}})
+                    elif p.get("type") == "text":
+                        parts.append({"type": "text", "text": p.get("text", "")})
+                content = parts
+            else:
+                content = "\n".join(p.get("text", "") for p in content if p.get("type") == "text")
         flat.append({"role": m["role"], "content": content})
     body = {"model": cfg["model"], "stream": True, "max_tokens": max_tokens, "messages": [{"role": "system", "content": system}] + flat}
     headers = {"content-type": "application/json"}
@@ -387,9 +430,16 @@ def _agent_prompt(system, messages):
     parts = ["INSTRUCTIONS (follow them exactly):\n" + system, "\nCONVERSATION SO FAR:"]
     for m in messages:
         who = "User" if m["role"] == "user" else "Assistant (you)"
-        parts.append("\n[%s]\n%s" % (who, m["content"] if isinstance(m["content"], str) else ""))
+        c = m["content"]
+        parts.append("\n[%s]\n%s" % (who, c if isinstance(c, str) else "\n".join(p.get("text", "") for p in c if p.get("type") == "text")))
     parts.append("\nWrite only your next reply as the assistant. Do not use any tools; answer in text.")
     return "\n".join(parts)
+
+
+def _agent_images(messages):
+    """The picture blocks in the last message, if any (only the picture-reading step sends one)."""
+    last = messages[-1]["content"] if messages else ""
+    return [p for p in last if p.get("type") == "image"] if isinstance(last, list) else []
 
 
 def stream_agent(cfg, system, messages, on_delta, max_tokens=MAX_TOKENS):
@@ -397,7 +447,10 @@ def stream_agent(cfg, system, messages, on_delta, max_tokens=MAX_TOKENS):
     path = shutil.which(a["exe"]) if a else None
     if not a or not path:
         raise AIError("Manimo could not find a coding agent on this PC. Install one and sign in, or use an API key instead.")
-    cmd = [path] + a["args"]
+    images = _agent_images(messages)
+    if images and not a.get("stream_json"):
+        raise AIError("%s cannot look at pictures from Manimo. Type the problem instead, or use Claude Code or an API key." % a["label"])
+    cmd = [path] + a["args"] + (["--input-format", "stream-json"] if images else [])
     if cfg.get("agent_model"):
         cmd += [a["model_flag"], cfg["agent_model"]]
     cwd = DATA_DIR / "agent-cwd"
@@ -411,7 +464,11 @@ def stream_agent(cfg, system, messages, on_delta, max_tokens=MAX_TOKENS):
 
     def feed():
         try:
-            proc.stdin.write(_agent_prompt(system, messages).encode("utf-8"))
+            if images:       # one stream-json user turn holding the picture and the instructions
+                line = {"type": "user", "message": {"role": "user", "content": images + [{"type": "text", "text": _agent_prompt(system, messages)}]}}
+                proc.stdin.write((json.dumps(line) + "\n").encode("utf-8"))
+            else:
+                proc.stdin.write(_agent_prompt(system, messages).encode("utf-8"))
             proc.stdin.close()
         except OSError:
             pass
@@ -465,6 +522,16 @@ def stream_agent(cfg, system, messages, on_delta, max_tokens=MAX_TOKENS):
 
 
 def stream(cfg, system, messages, on_delta, max_tokens=MAX_TOKENS):
+    try:
+        return _stream_once(cfg, system, messages, on_delta, max_tokens)
+    except AIError as e:
+        if cfg["provider"] == "agent" and cfg.get("agent_model") and "selected model" in str(e):
+            # the agent does not know the saved model name: try once with the agent's own default instead of failing
+            return _stream_once(dict(cfg, agent_model=""), system, messages, on_delta, max_tokens)
+        raise
+
+
+def _stream_once(cfg, system, messages, on_delta, max_tokens=MAX_TOKENS):
     fn = {"anthropic": stream_anthropic, "agent": stream_agent}.get(cfg["provider"], stream_openai)
     fn(cfg, system, messages, on_delta, max_tokens)
 
@@ -584,7 +651,7 @@ def verify_manimgx(code, workdir, scenes, step_cb=None):
             raise Cancelled()
         png = workdir / f"{sc}.storyboard.png"
         try:
-            p = subprocess.run([sys.executable, "-m", "manimgx", "inspect", str(src), sc, "-o", str(png)], capture_output=True, text=True,
+            p = subprocess.run([sys.executable, str(APP_DIR / "run_with_voice.py"), "inspect", str(src), sc, "-o", str(png)], capture_output=True, text=True,
                                encoding="utf-8", errors="replace", timeout=180, cwd=workdir, creationflags=NO_WINDOW)
         except subprocess.TimeoutExpired:
             report["error"] = {"kind": "error", "line": None, "text": f"Checking {sc} took longer than 3 minutes. The scene may loop forever or be extremely heavy."}
@@ -688,10 +755,13 @@ def run(req):
     cfg = load_settings()
     engine = "manim" if req.get("engine") == "manim" else "manimgx"
     mode = req.get("mode") or "write"
+    if wants_solve_first(req, mode):
+        mode = "solve"
+        req = dict(req, mode="solve", use_code=False, code="", selection="")
     workdir = Path(tempfile.mkdtemp(prefix="manimo-ai-"))
     try:
         recent = [str(m.get("text", "")) for m in (req.get("history") or [])[-4:] if m.get("role") == "user"]
-        system = skill_prompt(engine, " ".join([str(req.get("prompt") or "")] + recent))
+        system = solve_prompt() if mode == "solve" else skill_prompt(engine, " ".join([str(req.get("prompt") or "")] + recent))
         history = [m for m in (req.get("history") or []) if m.get("role") in ("user", "assistant") and str(m.get("text", "")).strip()][-12:]
         messages = [{"role": m["role"], "content": str(m["text"])[:20000]} for m in history]
         while messages and messages[0]["role"] != "user":
@@ -699,7 +769,7 @@ def run(req):
         if messages and messages[-1]["role"] == "user":
             messages.pop()
         messages.append({"role": "user", "content": build_user_message(req)})
-        wants_code = mode not in ("explain", "chat")
+        wants_code = mode not in ("explain", "chat", "solve")
         rounds_allowed = MAX_ROUNDS if wants_code else 1
         final_text, final_code, report, name_issues = "", "", None, []
         t0 = time.time()
@@ -716,7 +786,7 @@ def run(req):
             def on_delta(piece, buf=buf):
                 buf.append(piece)
                 _update(text="".join(buf))
-            stream(cfg, system, messages, on_delta)
+            stream(cfg, system, messages, on_delta, 2200 if mode == "solve" else MAX_TOKENS)
             text = "".join(buf)
             code = extract_code(text)
             _finish(idx, "done", f"{len(code.splitlines())} lines" if code else "")
@@ -788,7 +858,7 @@ def run(req):
                        "error": report["error"], "seconds": s.get("seconds"), "plays": s.get("plays"), "note": report.get("note", ""),
                        "skipped": report.get("skipped", 0), "rounds": len([x for x in _job["steps"] if x["label"].startswith(("Writing", "Fixing"))]),
                        "elapsed": round(time.time() - t0, 1)}
-        _update(state="done", final={"text": final_text, "code": final_code, "report": summary})
+        _update(state="done", final={"text": final_text, "code": final_code, "report": summary, "kind": "solve" if mode == "solve" else ""})
     except Cancelled:
         _update(state="cancelled")
     except AIError as e:
@@ -823,6 +893,60 @@ def cancel():
 def job():
     with _lock:
         return json.loads(json.dumps(_job))
+
+
+# ---------------------------------------------------------------- a picture of a problem: read once, then it is only text
+MAX_IMAGE_B64 = 2_200_000        # the page shrinks a picture to about 1,100 px first, so this is far above what it normally sends
+
+
+def read_image(body):
+    """Turn a picture of a problem into plain text with ONE short call (no animation guide, no chat history). The picture is not kept
+    and is never sent again: the user checks the text and sends that."""
+    data = str(body.get("image") or "")
+    if data.startswith("data:"):
+        data = data.split(",", 1)[-1]
+    media = "image/png" if body.get("media_type") == "image/png" else "image/jpeg"
+    if not data or len(data) > MAX_IMAGE_B64:
+        return {"error": "That picture is too large. Try a smaller one."}, 400
+    try:
+        base64.b64decode(data[:200] + "=" * (-len(data[:200]) % 4))
+    except Exception:
+        return {"error": "That is not a picture Manimo can read."}, 400
+    cfg = load_settings()
+    if cfg["provider"] == "anthropic" and not api_key(cfg):
+        return {"error": "Add your API key in AI settings first."}, 400
+    with _lock:
+        if _job.get("state") == "running":
+            return {"error": "The assistant is busy. Try again when it finishes."}, 409
+    _cancel.clear()
+    buf = []
+    messages = [{"role": "user", "content": [{"type": "image", "source": {"type": "base64", "media_type": media, "data": data}},
+                                             {"type": "text", "text": "Write down the problem in this picture."}]}]
+    try:
+        stream(cfg, READ_SYSTEM, messages, buf.append, 900)
+    except Cancelled:
+        return {"error": "Stopped."}, 200
+    except AIError as e:
+        return {"error": str(e)}, 502
+    text = "".join(buf).strip()
+    if not text:
+        return {"error": "Nothing could be read from that picture."}, 502
+    return {"text": text[:6000]}, 200
+
+
+def estimate(body):
+    """About how many tokens the next request will send, so the user can see the cost before pressing Send. (Characters / 4: a guide, not a bill.)"""
+    engine = "manim" if body.get("engine") == "manim" else "manimgx"
+    prompt = str(body.get("prompt") or "")
+    history = [m for m in (body.get("history") or []) if m.get("role") in ("user", "assistant")][-6:]
+    mode = body.get("mode") or "write"
+    req = {"prompt": prompt, "solve_first": body.get("solve_first"), "mode": mode}
+    solve = wants_solve_first(req, mode)
+    recent = " ".join([prompt] + [str(m.get("text", "")) for m in history if m.get("role") == "user"])
+    guide = len(solve_prompt()) if solve else len(skill_prompt(engine, recent))
+    yours = len(prompt) + sum(len(str(m.get("text", ""))) for m in history) + (0 if solve or not body.get("use_code") else len(str(body.get("code") or "")))
+    return {"tokens": (guide + yours) // 4, "guide_tokens": guide // 4, "your_tokens": yours // 4, "solve_first": solve,
+            "rounds": 1 if solve else MAX_ROUNDS, "output_max": 2200 if solve else MAX_TOKENS}, 200
 
 
 # ---------------------------------------------------------------- checking the user's own code before it is rendered
@@ -885,6 +1009,10 @@ def deep_check(code, scene=None):
 
 def handle(method, path, body):
     """Routes used by server.py. Returns (payload, status)."""
+    if method == "POST" and path == "/api/ai/read-image":
+        return read_image(body)
+    if method == "POST" and path == "/api/ai/estimate":
+        return estimate(body)
     if method == "POST" and path == "/api/ai/check":
         code = str(body.get("code") or "")[:400_000]
         if body.get("deep"):

@@ -44,7 +44,13 @@ function api(path, body) {
 function openUrl(u) { if (DEMO) { window.open(u, '_blank'); return; } api('/api/open-url', { url: u }).catch(function (e) { toast(e.message); }); }
 
 /* ---------------------------------------------------------------- settings + theme */
-var DEFAULTS = { quality: 'h', shape: 'auto', fps: 'auto', encoding: 'balanced', theme: 'system' };
+var DEFAULTS = { quality: 'h', shape: 'auto', fps: 'auto', encoding: 'balanced', theme: 'system', uiSize: 'compact', layout: 'classic' };
+var LAYOUTS = { classic: ['Classic', 'Code on the left, preview on the right. The default.'], vscode: ['VS Code', 'A bar of view icons on the left and a status bar along the bottom, like a code editor.'],
+  stacked: ['Top and bottom', 'Code above, preview below. Good for wide code and tall videos.'], previewleft: ['Preview first', 'Preview on the left, code on the right.'], cinema: ['Cinema', 'A big preview with a narrow code column. Good for presenting.'] };
+var SPLIT_DEFAULT = { classic: 56, vscode: 56, stacked: 52, previewleft: 56, cinema: 32 };
+function applyLayout() { var a = $('app'), k = LAYOUTS[S.layout] ? S.layout : 'classic'; if (a.dataset.layout !== k) { a.dataset.layout = k; if (window.__splitReset) window.__splitReset(); } var h = $('layoutHelp'); if (h) h.textContent = LAYOUTS[k][1]; }
+var UI_ZOOM = { compact: 0.9, normal: 1, large: 1.12 };
+function applyUiSize() { var z = UI_ZOOM[S.uiSize] || 0.9, r = document.documentElement; r.style.zoom = z; r.style.setProperty('--z', z); }
 var SHAPE_LABEL = { 'auto': '', '16:9': '16:9', '9:16': '9:16 tall', '1:1': 'square', '4:3': '4:3', '3:4': '3:4' };
 var ENC_LABEL = { fast: 'Fastest', balanced: 'Balanced', small: 'Small file' };
 var QUALITY = { l: ['480p', '854x480'], m: ['720p', '1280x720'], h: ['1080p', '1920x1080'], k: ['4K', '3840x2160'] };
@@ -341,7 +347,7 @@ function syncSettingsUI() {
     g.querySelectorAll('[role=radio]').forEach(function (b) { var on = String(S[key]) === b.dataset.v; b.setAttribute('aria-checked', on); b.tabIndex = on ? 0 : -1; });
   });
   $('qualityHelp').textContent = QHELP[S.quality];
-  $('quickShape').value = S.shape;
+  $('quickShape').value = S.shape; applyUiSize(); applyLayout();
   var ce = engineOf(code.value) === 'manim';
   $('qualityLbl').textContent = QUALITY[S.quality][0] + (SHAPE_LABEL[S.shape] ? ' · ' + SHAPE_LABEL[S.shape] : '') + (S.fps === 'auto' ? '' : ' \u00b7 ' + S.fps + ' fps') + (ce ? '' : ' \u00b7 ' + ENC_LABEL[S.encoding]);
   var e = info.engines || {};
@@ -455,18 +461,29 @@ $('tabCode').addEventListener('click', function () { setView('code'); });
 $('tabPreview').addEventListener('click', function () { setView('preview'); });
 
 (function splitter() {
-  var ws = $('workspace'), sp = $('splitter'), pct = parseFloat(store('mgx-split')) || 56;
-  function apply(p) { pct = Math.max(32, Math.min(74, p)); ws.style.setProperty('--left', pct + '%'); }
-  apply(pct);
+  var ws = $('workspace'), sp = $('splitter'), pct = 56;
+  function key() { return 'mgx-split-' + (S.layout || 'classic'); }
+  function lim() { return S.layout === 'cinema' ? [22, 60] : [32, 74]; }
+  function apply(p) { var l = lim(); pct = Math.max(l[0], Math.min(l[1], p)); ws.style.setProperty('--left', pct + '%'); }
+  function save() { store(key(), String(pct)); }
+  window.__splitReset = function () { apply(parseFloat(store(key())) || SPLIT_DEFAULT[S.layout] || 56); };
+  apply(parseFloat(store('mgx-split')) || 56);
   sp.addEventListener('pointerdown', function (e) {
     sp.setPointerCapture(e.pointerId); sp.classList.add('drag'); document.body.style.userSelect = 'none';
-    var r = ws.getBoundingClientRect();
-    function move(ev) { apply(((ev.clientX - r.left - 12) / (r.width - 24)) * 100); }
-    function up() { sp.classList.remove('drag'); document.body.style.userSelect = ''; sp.removeEventListener('pointermove', move); sp.removeEventListener('pointerup', up); store('mgx-split', String(pct)); }
+    var st = $('stageSplit'), r = st.getBoundingClientRect(), lay = S.layout;
+    function move(ev) {
+      if (lay === 'stacked') apply(((ev.clientY - r.top) / r.height) * 100);
+      else if (lay === 'previewleft') apply(((r.right - ev.clientX - 6) / (r.width - 12)) * 100);
+      else apply(((ev.clientX - r.left - 6) / (r.width - 12)) * 100);
+    }
+    function up() { sp.classList.remove('drag'); document.body.style.userSelect = ''; sp.removeEventListener('pointermove', move); sp.removeEventListener('pointerup', up); save(); }
     sp.addEventListener('pointermove', move); sp.addEventListener('pointerup', up);
   });
-  sp.addEventListener('keydown', function (e) { if (e.key === 'ArrowLeft') { apply(pct - 2); store('mgx-split', String(pct)); } else if (e.key === 'ArrowRight') { apply(pct + 2); store('mgx-split', String(pct)); } });
-  sp.addEventListener('dblclick', function () { apply(56); store('mgx-split', '56'); });
+  sp.addEventListener('keydown', function (e) {
+    var more = S.layout === 'previewleft' ? 'ArrowLeft' : S.layout === 'stacked' ? 'ArrowDown' : 'ArrowRight', less = S.layout === 'previewleft' ? 'ArrowRight' : S.layout === 'stacked' ? 'ArrowUp' : 'ArrowLeft';
+    if (e.key === less) { apply(pct - 2); save(); e.preventDefault(); } else if (e.key === more) { apply(pct + 2); save(); e.preventDefault(); }
+  });
+  sp.addEventListener('dblclick', function () { apply(SPLIT_DEFAULT[S.layout] || 56); save(); });
 })();
 
 /* ---------------------------------------------------------------- preview */
@@ -910,12 +927,21 @@ $('addManim').addEventListener('click', installManim);
 /* ---------------------------------------------------------------- menus */
 var menuEl = $('menu'), openId = null;
 function mi(label, key, run, opts) { return Object.assign({ label: label, key: key || '', run: run }, opts || {}); }
+function setLayout(k) { S.layout = k; persistSettings(); syncSettingsUI(); toast(LAYOUTS[k][0] + ' layout'); }
 function menuItems(id) {
   if (id === 'file') {
     var items = (window.MGXProject ? window.MGXProject.menu() : []).concat([mi('New file', 'Ctrl+N', newFile), mi('Open\u2026', 'Ctrl+O', openFile), mi('Save', 'Ctrl+S', function () { saveFile(false); }), mi('Save as\u2026', 'Ctrl+Shift+S', function () { saveFile(true); }), { sep: true }, mi('My videos\u2026', '', function () { if (window.MGXLibrary) window.MGXLibrary.open(); }), { sep: true }, { head: 'Examples' }]);
     EXAMPLES.forEach(function (ex, i) { items.push(mi(ex.name, '', function () { loadExample(i); })); });
     items.push({ sep: true }, mi('Exit', 'Alt+F4', exitApp));
     return items;
+  }
+  if (id === 'view') {
+    var v = [{ head: 'Layout' }];
+    Object.keys(LAYOUTS).forEach(function (k) { v.push(mi((S.layout === k ? '\u2713  ' : '\u2003 ') + LAYOUTS[k][0], '', function () { setLayout(k); })); });
+    v.push({ sep: true }, { head: 'Interface size' });
+    [['compact', 'Compact'], ['normal', 'Normal'], ['large', 'Large']].forEach(function (z) { v.push(mi((S.uiSize === z[0] ? '\u2713  ' : '\u2003 ') + z[1], '', function () { S.uiSize = z[0]; persistSettings(); syncSettingsUI(); })); });
+    v.push({ sep: true }, mi('Project panel', '', function () { setPanel('proj'); }), mi('Assistant panel', 'Ctrl+L', function () { setPanel('ai'); }));
+    return v;
   }
   if (id === 'edit') return [
     mi('Undo', 'Ctrl+Z', function () { cm.run('undo'); }), mi('Redo', 'Ctrl+Y', function () { cm.run('redo'); }), { sep: true },
@@ -1133,7 +1159,7 @@ function setPanel(which, open, focusInput) {
   open = open === undefined ? el.hidden : !!open;
   if (open && mqSide.matches) { var other = ai ? $('projSide') : $('aiSide'); if (!other.hidden) { other.hidden = true; (ai ? $('projBtn') : $('aiBtn')).setAttribute('aria-pressed', 'false'); store('mgx-panel-' + (ai ? 'proj' : 'ai'), '0'); } }
   el.hidden = !open; btn.setAttribute('aria-pressed', String(open)); store('mgx-panel-' + which, open ? '1' : '0');
-  if (ai && open) { renderChat(); aiFoot(); if (focusInput !== false) setTimeout(function () { var i = $('chatInput'); if (i && !$('chatCompose').hidden) i.focus(); }, 40); }
+  if (ai && open) { renderChat(); aiFoot(); sizeEstimate(); if (focusInput !== false) setTimeout(function () { var i = $('chatInput'); if (i && !$('chatCompose').hidden) i.focus(); }, 40); }
   if (!ai && open && window.MGXProject) window.MGXProject.show();
 }
 function rightTab(which) {      // the preview is always shown; Assistant and Project open as side panels
@@ -1197,7 +1223,9 @@ function msgHTML(m, idx) {
   h += stepsHTML(m.steps);
   if (m.error) h += '<div class="msg-err">' + esc(m.error) + '</div>';
   var t = mdLite(m.text); if (t) h += '<div class="txt">' + t + '</div>';
-  h += codeCardHTML(m, idx) + reportHTML(m.report, idx) + '</div>';
+  h += codeCardHTML(m, idx) + reportHTML(m.report, idx);
+  if (m.kind === 'solve') h += '<div class="solve-act"><button class="btn sm primary" data-act="animate" data-i="' + idx + '">Looks right: animate it</button><button class="btn sm ghost" data-act="fixsolve" data-i="' + idx + '">I will correct it</button></div><p class="help" style="margin:6px 0 0">Check the answer before animating. It costs more to animate a wrong one.</p>';
+  h += '</div>';
   return h;
 }
 var TRY = ['Show why the sum of the first n odd numbers is n squared', 'Explain how a capacitor charges through a resistor', 'Visualise bubble sort on 5, 2, 8, 1, 9'];
@@ -1249,7 +1277,7 @@ function sendAI(o) {
   AI.msgs.push({ role: 'user', text: label });
   var engine = hasCode ? engineOf(code.value) : $('aiEngine').value; store('mgx-ai-engine', $('aiEngine').value);
   AI.busy = true; AI.live = { steps: [], text: '' }; $('chatInput').value = ''; renderChat();
-  api('/api/ai/run', { mode: mode, prompt: text, engine: engine, code: hasCode ? code.value : '', use_code: hasCode, selection: cm.selection(), error: err, history: history }).then(function () {
+  api('/api/ai/run', { mode: mode, prompt: text, engine: engine, code: hasCode ? code.value : '', use_code: hasCode, selection: cm.selection(), error: err, history: history, solve_first: !!($('solveFirst') && $('solveFirst').checked) && !o.noSolve }).then(function () {
     clearInterval(AI.poll);
     AI.poll = setInterval(function () {
       api('/api/ai/job').then(function (j) { AI.live = j; renderLive(); if (j.state !== 'running') { clearInterval(AI.poll); finishAI(j); } }).catch(function () {});
@@ -1258,7 +1286,7 @@ function sendAI(o) {
 }
 function finishAI(j) {
   AI.busy = false; AI.live = null;
-  if (j.state === 'done' && j.final) AI.msgs.push({ role: 'assistant', text: j.final.text, code: j.final.code, report: j.final.report, steps: j.steps });
+  if (j.state === 'done' && j.final) AI.msgs.push({ role: 'assistant', text: j.final.text, code: j.final.code, report: j.final.report, steps: j.steps, kind: j.final.kind || '' });
   else if (j.state === 'cancelled') AI.msgs.push({ role: 'assistant', text: 'Stopped.', steps: j.steps });
   else AI.msgs.push({ role: 'assistant', text: '', error: j.error || 'Something went wrong.', steps: j.steps });
   saveChat(); renderChat(); say('The assistant has finished.');
@@ -1286,6 +1314,8 @@ $('chatLog').addEventListener('click', function (e) {
   else if (act === 'apply') applyAICode(i, false);
   else if (act === 'render') applyAICode(i, true);
   else if (act === 'copy') { var m = AI.msgs[i]; (navigator.clipboard ? navigator.clipboard.writeText(m.code) : Promise.reject()).then(function () { toast('Code copied'); }, function () { toast('Could not copy'); }); }
+  else if (act === 'animate') sendAI({ text: 'The solution above is correct. Now animate it step by step, exactly as solved, with the numbers computed in the scene.', noSolve: true });
+  else if (act === 'fixsolve') { var ci = $('chatInput'); ci.value = 'Correct the solution: '; ci.focus(); ci.setSelectionRange(ci.value.length, ci.value.length); }
   else if (act === 'fixrest') { applyAICode(i, false); sendAI({ mode: 'fix', text: 'Fix the remaining problems.', error: problemsText(AI.msgs[i]) }); }
 });
 $('chatSend').addEventListener('click', function () { sendAI({ text: $('chatInput').value }); });
@@ -1303,6 +1333,77 @@ window.MGXApp = { toast: toast, askAI: function (text) {
   setPanel('ai', true, false); var i = $('chatInput'); i.value = text; $('useCode').checked = false;
   i.focus(); i.setSelectionRange(0, 0); i.scrollTop = 0; toast('Prompt is in the assistant box. Press Enter to send it.');
 } };
+/* ---------------------------------------------------------------- a picture of a problem, and what a request will cost
+   The picture is shrunk here (about 1,100 px, JPEG), read ONCE into plain text by one short call, and then dropped: only the text is ever
+   sent again. You check and correct the text before sending it. */
+var IMG_MAX = 1100;
+function imgNote(html, cls, thumb) {
+  var c = $('chatImg'); c.hidden = !html; c.className = 'chat-img' + (cls ? ' ' + cls : ''); c.innerHTML = html || '';
+}
+function shrinkImage(file) {
+  return new Promise(function (ok, bad) {
+    var url = URL.createObjectURL(file), im = new Image();
+    im.onload = function () {
+      var s = Math.min(1, IMG_MAX / Math.max(im.naturalWidth, im.naturalHeight)), w = Math.max(1, Math.round(im.naturalWidth * s)), h = Math.max(1, Math.round(im.naturalHeight * s));
+      var cv = document.createElement('canvas'); cv.width = w; cv.height = h; var g = cv.getContext('2d');
+      g.fillStyle = '#fff'; g.fillRect(0, 0, w, h); g.drawImage(im, 0, 0, w, h); URL.revokeObjectURL(url);
+      var data = cv.toDataURL('image/jpeg', 0.84); ok({ data: data, w: w, h: h, kb: Math.round(data.length * 0.75 / 1024) });
+    };
+    im.onerror = function () { URL.revokeObjectURL(url); bad(new Error('That file is not a picture Manimo can open.')); };
+    im.src = url;
+  });
+}
+function attachImage(file) {
+  if (DEMO) { toast('Open Manimo from its shortcut to use the assistant'); return; }
+  if (!file || !/^image\//.test(file.type)) { toast('Choose a picture (PNG or JPG)'); return; }
+  if (AI.busy) { toast('Wait for the assistant to finish first'); return; }
+  setPanel('ai', true, false);
+  imgNote('<span class="spin" aria-hidden="true"></span><span class="grow">Reading the picture\u2026</span>');
+  shrinkImage(file).then(function (im) {
+    imgNote('<img src="' + im.data + '" alt="The picture you attached"><span class="grow">Reading the picture\u2026 (' + im.w + '\u00d7' + im.h + ', ' + im.kb + ' KB)</span>');
+    return api('/api/ai/read-image', { image: im.data, media_type: 'image/jpeg' }).then(function (r) {
+      var box = $('chatInput'), keep = box.value.trim();
+      box.value = 'Solve this problem and teach it as a step-by-step animation.\n\nPROBLEM (read from the picture):\n' + r.text + (keep ? '\n\n' + keep : '');
+      $('useCode').checked = false; box.focus(); box.setSelectionRange(0, 0); box.scrollTop = 0;
+      imgNote('<img src="' + im.data + '" alt="The picture you attached"><span class="grow"><b>Read as text.</b> Check the numbers below, correct anything wrong, then press Send. The picture is not sent again.</span><button class="icon-btn sm" id="chatImgX" aria-label="Dismiss"><svg class="ic"><use href="#i-x"/></svg></button>');
+      sizeEstimate();
+    });
+  }).catch(function (e) { imgNote('<span class="grow">' + esc(e.message || 'Could not read the picture.') + '</span><button class="icon-btn sm" id="chatImgX" aria-label="Dismiss"><svg class="ic"><use href="#i-x"/></svg></button>', 'err'); });
+}
+$('chatImg').addEventListener('click', function (e) { if (e.target.closest('#chatImgX')) imgNote(''); });
+$('chatAttach').addEventListener('click', function () { $('chatFile').click(); });
+$('chatFile').addEventListener('change', function () { var f = this.files[0]; this.value = ''; if (f) attachImage(f); });
+$('chatInput').addEventListener('paste', function (e) {
+  var items = (e.clipboardData && e.clipboardData.items) || [];
+  for (var i = 0; i < items.length; i++) if (items[i].kind === 'file' && /^image\//.test(items[i].type)) { e.preventDefault(); attachImage(items[i].getAsFile()); return; }
+});
+['dragover', 'drop'].forEach(function (n) {
+  $('assist').addEventListener(n, function (e) {
+    var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    if (!f || !/^image\//.test(f.type)) return;
+    e.preventDefault(); e.stopPropagation(); if (n === 'drop') { dragDepth = 0; $('dropzone').classList.remove('show'); attachImage(f); }
+  });
+});
+var estTimer = null, estSeq = 0;
+function sizeEstimate() {
+  clearTimeout(estTimer);
+  estTimer = setTimeout(function () {
+    var box = $('chatInput'); if (!box || $('chatCompose').hidden || DEMO) { return; }
+    var text = box.value.trim(), hasCode = !!code.value.trim() && $('useCode').checked, mine = ++estSeq;
+    var history = AI.msgs.slice(-6).map(function (m) { return { role: m.role, text: m.role === 'assistant' ? stripCode(m.text) : m.text }; }).filter(function (m) { return m.text; });
+    api('/api/ai/estimate', { prompt: text, mode: hasCode ? 'edit' : 'write', engine: hasCode ? engineOf(code.value) : $('aiEngine').value, code: hasCode ? code.value : '', use_code: hasCode, history: history, solve_first: $('solveFirst').checked }).then(function (r) {
+      if (mine !== estSeq) return;
+      var n = function (x) { return Math.round(x / 100) * 100; };
+      $('chatEst').textContent = r.solve_first
+        ? 'Solves first: about ' + n(r.tokens).toLocaleString() + ' tokens now. The animation is a separate, larger step that you approve.'
+        : 'About ' + n(r.tokens).toLocaleString() + ' tokens to send (' + n(r.guide_tokens).toLocaleString() + ' of them the built-in guide). Each fix round sends it again, up to ' + r.rounds + ' rounds.';
+    }).catch(function () {});
+  }, 600);
+}
+$('chatInput').addEventListener('input', sizeEstimate);
+$('useCode').addEventListener('change', sizeEstimate);
+$('solveFirst').addEventListener('change', sizeEstimate);
+$('aiEngine').addEventListener('change', sizeEstimate);
 $('aiNew').addEventListener('click', function () { if (AI.busy) return; AI.msgs = []; saveChat(); renderChat(); });
 $('aiSettingsBtn').addEventListener('click', openAISettings);
 $('aiEngine').value = store('mgx-ai-engine') || 'manimgx';
@@ -1392,7 +1493,8 @@ window.MANIMO = {
   applySettings: function (s) { if (!s) return; if (s.quality) S.quality = s.quality; S.shape = s.shape || 'auto'; if (s.fps) S.fps = s.fps; if (s.encoding) S.encoding = s.encoding; if (s.voice) { VOICE.id = s.voice; store('mgx-voice', VOICE.id); } if (s.speed) { VOICE.speed = s.speed; store('mgx-voice-speed', String(VOICE.speed)); } persistSettings(); syncSettingsUI(); },
   recentVideos: function () { return history.filter(function (h) { return h.kind === 'video' && h.path; }).slice(0, 8); },
   selectScene: function (n) { selScene = n; store('mgx-scene', n); updateStatus(); },
-  outDir: function () { return outDir; }, jumpToLine: function (n) { jumpToLine(n); }, selectedScene: function () { return selScene === ALL ? '' : selScene; },
+  outDir: function () { return outDir; }, voiceName: function () { var v = ((info && info.voice && info.voice.voices) || []).filter(function (x) { return x.id === VOICE.id; })[0]; return v ? v.label : ''; }, openSettings: function (tab) { openSettings($('settingsBtn'), tab); }, setLayout: setLayout, layouts: LAYOUTS, jumpToLine: function (n) { jumpToLine(n); }, selectedScene: function () { return selScene === ALL ? '' : selScene; },
+  exit: exitApp,
   isRendering: function () { return R.state === 'running'; }, exportsFolderOpen: function (p) { return api('/api/open-folder', { path: p }); }
 };
 boot();
