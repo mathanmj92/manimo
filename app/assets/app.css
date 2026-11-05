@@ -434,6 +434,13 @@ dialog.dlg::backdrop { background: var(--scrim); animation: fade .25s ease both;
 .try-list button:hover { border-color: var(--accent); color: var(--text); }
 .input { width: 100%; padding: 8px 10px; border-radius: var(--r-md); border: 1px solid var(--line-strong); background: var(--bg); color: var(--text); font: inherit; }
 .input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.fix-list { display: grid; gap: 8px; margin-bottom: 12px; }
+.fix-item { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; background: var(--surface-2); }
+.fix-item .fix-problem { font-size: 13px; margin: 0 0 6px; overflow-wrap: anywhere; }
+.fix-item pre { margin: 0 0 8px; padding: 8px 10px; border-radius: 8px; background: var(--surface); font: 12px/1.5 var(--mono, ui-monospace, monospace); white-space: pre-wrap; overflow-wrap: anywhere; max-height: 130px; overflow: auto; }
+.fix-item .fix-meta { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--text-2); }
+.fix-item .fix-meta .spacer { flex: 1; }
+.dlg-row { display: flex; gap: 8px; margin-top: 8px; }
 .linkbtn { border: 0; background: none; padding: 0; color: var(--accent-text); text-decoration: underline; text-underline-offset: 2px; font-size: 12.5px; }
 #assistBtns, #previewBtns { display: inline-flex; gap: 2px; }
 @media (max-width: 720px) { .chat-quick .chip:nth-child(n+3) { display: none; } }

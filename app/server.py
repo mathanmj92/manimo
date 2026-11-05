@@ -27,6 +27,7 @@ import socket
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import addon
 import ai
+import packages
 import project
 import update
 import voice
@@ -34,7 +35,7 @@ from pathlib import Path
 from urllib.request import urlopen
 
 APP_DIR = Path(__file__).resolve().parent
-VERSION = "1.9.10"
+VERSION = "1.10.0"
 FIRST_PORT = 8765
 PORT_SPAN = 11
 IDLE_EXIT_SECONDS = 120
@@ -873,6 +874,8 @@ class Handler(BaseHTTPRequestHandler):
             for fn in HOOKS["focus"]:
                 threading.Thread(target=fn, daemon=True).start()
             return self._send({"ok": True})
+        if path == "/api/packages":
+            return self._send(packages.state())
         if path == "/api/chrome":
             return self._send({"custom": CHROME["custom"]})
         if path == "/api/status":
@@ -952,6 +955,7 @@ class Handler(BaseHTTPRequestHandler):
             "/api/video-meta": lambda: video_meta(body),
             "/api/quit": quit_app,
             "/api/window": lambda: window_action(body),
+            "/api/packages/install": lambda: packages.start(body),
         }
         handler = routes.get(self.path)
         if handler is None:

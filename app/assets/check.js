@@ -8,7 +8,7 @@ var M = window.MANIMO, pill = document.getElementById('checkPill'), panel = docu
 if (!M || !pill || !panel) return;
 var $ = M.$, esc = M.esc;
 
-var state = { quick: null, deep: null, seq: 0, deepSeq: 0, busy: false, lastLen: 0, lastCode: '', deepFor: '' };
+var state = { quick: null, deep: null, seq: 0, deepSeq: 0, busy: false, lastLen: 0, lastCode: '', deepFor: '', pkg: { running: false, step: '', error: '' } };
 var quickTimer = null, deepTimer = null;
 
 function issuesNow() { return (state.deep && state.deepFor === state.lastCode ? state.deep.issues : state.quick && state.quick.issues) || []; }
@@ -28,11 +28,16 @@ function paintPill() {
 function paintPanel() {
   var list = issuesNow(), deepDone = state.deep && state.deepFor === state.lastCode && state.deep.deep;
   var html = '<div class="chk-head"><b>' + (list.length ? 'What the check found' : 'No problems found') + '</b><button class="icon-btn" id="chkClose" aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button></div>';
+  var pk = list.filter(function (i) { return i.kind === 'package'; });
   if (list.length) {
     html += '<ul class="chk-list">' + list.map(function (i) {
       var where = i.line ? '<button class="linkbtn" data-line="' + i.line + '">Line ' + i.line + '</button> ' : '';
-      return '<li class="chk-' + esc(i.kind) + '">' + where + esc(i.text) + '</li>';
+      var add = i.kind === 'package' ? ' <button class="btn sm" data-pkg="' + esc(i.module) + '"' + (state.pkg.running ? ' disabled' : '') + '>Install ' + esc(i.package) + '</button>' : '';
+      return '<li class="chk-' + esc(i.kind) + '">' + where + esc(i.text) + add + '</li>';
     }).join('') + '</ul>';
+    if (state.pkg.running) html += '<p class="help">' + esc(state.pkg.step || 'Installing...') + '</p>';
+    else if (state.pkg.error) html += '<p class="help chk-error">' + esc(state.pkg.error) + '</p>';
+    else if (pk.length > 1) html += '<div class="chk-bar"><button class="btn sm" data-pkg="*">Install all ' + pk.length + '</button><span class="help">Downloads from the internet (PyPI).</span></div>';
   } else {
     html += '<p class="help">' + (deepDone ? 'The scene ran and nothing overlaps or leaves the frame.' : 'The code reads correctly and every name exists. Check the layout to run the scene and look for overlapping text.') + '</p>';
   }
@@ -75,10 +80,30 @@ function edited() {
 }
 function opened() { state.wantDeep = true; state.lastLen = M.getCode().length; clearTimeout(quickTimer); quickTimer = setTimeout(quick, 100); }
 
+/* Install a missing package. The page sends only the code and which import to install; the server works out the package name itself. */
+function installPkg(which) {
+  var missing = issuesNow().filter(function (i) { return i.kind === 'package' && (which === '*' || i.module === which); });
+  if (!missing.length || state.pkg.running) return;
+  var odd = missing.filter(function (i) { return !i.known; });
+  if (odd.length && !window.confirm(odd.map(function (i) { return i.package; }).join(', ') + ' is not on Manimo\'s list of known libraries.\n\nAnyone can publish a package under any name, and an AI can invent one. Install it only if you know what it is.\n\nInstall anyway?')) return;
+  state.pkg = { running: true, step: 'Starting...', error: '' }; paintPill();
+  M.api('/api/packages/install', { code: M.getCode(), only: missing.map(function (i) { return i.module; }), confirm_unknown: odd.length > 0 }).then(function () { pollPkg(); })
+    .catch(function (e) { state.pkg = { running: false, step: '', error: e.message }; paintPill(); });
+}
+function pollPkg() {
+  fetch('/api/packages').then(function (r) { return r.json(); }).then(function (s) {
+    if (s.state === 'running') { state.pkg.step = s.step; paintPill(); setTimeout(pollPkg, 900); return; }
+    state.pkg = { running: false, step: '', error: s.state === 'error' ? s.error : '' };
+    if (s.state === 'done') M.toast('Installed ' + s.packages.join(', '));
+    state.wantDeep = true; quick();
+  }).catch(function () { state.pkg = { running: false, step: '', error: 'Lost contact with Manimo.' }; paintPill(); });
+}
+
 pill.addEventListener('click', function () { panel.hidden = !panel.hidden; paintPill(); });
 panel.addEventListener('click', function (e) {
   if (e.target.closest('#chkClose')) { panel.hidden = true; paintPill(); return; }
   if (e.target.closest('#chkDeep')) { deep(); return; }
+  var pb = e.target.closest('[data-pkg]'); if (pb) { installPkg(pb.dataset.pkg); return; }
   var b = e.target.closest('[data-line]'); if (b && M.jumpToLine) M.jumpToLine(parseInt(b.dataset.line, 10));
 });
 document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !panel.hidden) { panel.hidden = true; paintPill(); } });

@@ -26,6 +26,9 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
+import fixmemory
+import packages
+
 APP_DIR = Path(__file__).resolve().parent
 SKILL_DIR = APP_DIR / "ai" / "skill"
 DATA_DIR = Path(os.environ.get("LOCALAPPDATA") or Path.home()) / "Manimo" / "data"
@@ -264,6 +267,20 @@ def solve_prompt():
     return SOLVE_SYSTEM + "\n\n" + (guide[:cut] if cut > 0 else guide)
 
 
+PLAN_SYSTEM = (
+    "You plan a short narrated teaching animation before any code is written. Reply in plain text only: no code. Use exactly this layout:\n"
+    "Title: one line.\nFor: who it is for, and what they should understand at the end.\n"
+    "Look: the colours and symbols used throughout, one line (the same colour always means the same thing).\n"
+    "Scenes: 3 to 8, numbered. Each scene is ONE idea and becomes one scene in the file. For each scene write:\n"
+    "  N. Name - what the viewer sees, in order (shapes, equations, movement). Narration: one or two short spoken sentences.\n"
+    "Keep every scene under about 40 seconds. Use real numbers in examples and never state a number you have not worked out. "
+    "End with: Check: the one thing most likely to confuse a viewer, and how a scene handles it. Keep it under 400 words.")
+
+
+def plan_prompt():
+    return PLAN_SYSTEM
+
+
 EDIT_VERBS = re.compile(r"^\s*(fix|change|make|improve|add|remove|slow|speed|rename|move|colou?r|shorten|lengthen)\b", re.I)
 
 
@@ -272,6 +289,17 @@ def wants_solve_first(req, mode):
     text = str(req.get("prompt") or "")
     return (bool(req.get("solve_first")) and mode in ("write", "edit") and len(text) >= 40 and not EDIT_VERBS.match(text)
             and "problem-solving-pipeline.md" in skill_extras(text)[0])
+
+
+def wants_plan_first(req, mode):
+    """Plan-first applies to a new lesson request (not an edit, and not a problem that solve-first takes) when the user switched it on."""
+    text = str(req.get("prompt") or "")
+    return (bool(req.get("plan_first")) and mode in ("write", "edit") and len(text) >= 40 and not EDIT_VERBS.match(text)
+            and not wants_solve_first(req, mode))
+
+
+# the text-only steps that come before any code: (system prompt, reply limit)
+STAGES = {"solve": (solve_prompt, 2200), "plan": (plan_prompt, 1800)}
 
 
 def build_user_message(req):
@@ -285,6 +313,11 @@ def build_user_message(req):
         blocks.append(f"<selected_code>\n{selection}\n</selected_code>")
     if error.strip():
         blocks.append(f"<last_error>\n{error[-3000:]}\n</last_error>")
+        if mode == "fix":
+            matches = fixmemory.find("manim" if req.get("engine") == "manim" else "manimgx", fixmemory.gist(error))
+            if matches:
+                fixmemory.used(matches)
+                blocks.append(fixmemory.prompt_block(matches))
     guide = {
         "write": "Write a new complete scene file for this request. If <current_code> is given it is only context.",
         "edit": "Change <current_code> as asked. Keep the user's names and structure; return the complete updated file.",
@@ -293,10 +326,14 @@ def build_user_message(req):
         "explain": "Explain <current_code> in plain language for someone who does not know Python. Do not return code.",
         "chat": "Answer the question. Only return code if it is asked for.",
         "solve": "Solve the problem in <request> completely and check it. Reply in plain text only (no code, no animation yet), under 350 words.",
+        "plan": "Plan the animation for <request>. Reply in plain text only (no code yet), under 400 words.",
     }.get(mode, "")
     blocks.append(f"<request>\n{text or guide}\n</request>")
     if text and guide:
         blocks.append(f"<how_to_respond>\n{guide}\n</how_to_respond>")
+    extra = packages.available_known() if mode in ("write", "edit", "fix", "improve") else []
+    if extra:      # only when something beyond the basics is installed: a few tokens, and the assistant will not invent imports
+        blocks.append(f"<libraries>Also installed and allowed to import: {', '.join(extra)}. Do not import any other third-party package.</libraries>")
     return "\n\n".join(blocks)
 
 
@@ -590,10 +627,12 @@ FORBIDDEN_CALLS = {"open", "exec", "eval", "compile", "__import__", "input", "br
 FORBIDDEN_ATTRS = {"__subclasses__", "__globals__", "__builtins__", "__import__", "__code__", "__bases__", "__mro__", "__loader__"}
 
 
-def scan_code(code):
+def scan_code(code, extra_ok=()):
     """A best-effort guard (not a sandbox): generated code is run to be checked before the user has read it, so refuse
-    anything that touches files, the network or the system. Returns issues in the same shape as check_names."""
+    anything that touches files, the network or the system. `extra_ok` names more modules to accept (installed libraries).
+    Returns issues in the same shape as check_names."""
     import ast
+    ok = SAFE_IMPORTS | set(extra_ok)
     try:
         tree = ast.parse(code)
     except SyntaxError:
@@ -603,10 +642,10 @@ def scan_code(code):
         line = getattr(node, "lineno", 0)
         if isinstance(node, ast.Import):
             for a in node.names:
-                if a.name.split(".")[0] not in SAFE_IMPORTS:
+                if a.name.split(".")[0] not in ok:
                     issues.append({"kind": "safety", "line": line, "text": f"`import {a.name}` is not allowed: animations must not use files, the network or the system"})
         elif isinstance(node, ast.ImportFrom):
-            if node.level or (node.module or "").split(".")[0] not in SAFE_IMPORTS:
+            if node.level or (node.module or "").split(".")[0] not in ok:
                 issues.append({"kind": "safety", "line": line, "text": f"`from {node.module or '.'} import ...` is not allowed: animations must not use files, the network or the system"})
         elif isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id in FORBIDDEN_CALLS:
             issues.append({"kind": "safety", "line": line, "text": f"`{node.func.id}(...)` is not allowed in an animation"})
@@ -758,10 +797,13 @@ def run(req):
     if wants_solve_first(req, mode):
         mode = "solve"
         req = dict(req, mode="solve", use_code=False, code="", selection="")
+    elif wants_plan_first(req, mode):
+        mode = "plan"
+        req = dict(req, mode="plan", use_code=False, code="", selection="")
     workdir = Path(tempfile.mkdtemp(prefix="manimo-ai-"))
     try:
         recent = [str(m.get("text", "")) for m in (req.get("history") or [])[-4:] if m.get("role") == "user"]
-        system = solve_prompt() if mode == "solve" else skill_prompt(engine, " ".join([str(req.get("prompt") or "")] + recent))
+        system = STAGES[mode][0]() if mode in STAGES else skill_prompt(engine, " ".join([str(req.get("prompt") or "")] + recent))
         history = [m for m in (req.get("history") or []) if m.get("role") in ("user", "assistant") and str(m.get("text", "")).strip()][-12:]
         messages = [{"role": m["role"], "content": str(m["text"])[:20000]} for m in history]
         while messages and messages[0]["role"] != "user":
@@ -769,9 +811,11 @@ def run(req):
         if messages and messages[-1]["role"] == "user":
             messages.pop()
         messages.append({"role": "user", "content": build_user_message(req)})
-        wants_code = mode not in ("explain", "chat", "solve")
+        wants_code = mode not in ("explain", "chat") and mode not in STAGES
         rounds_allowed = MAX_ROUNDS if wants_code else 1
         final_text, final_code, report, name_issues = "", "", None, []
+        # what to remember if this request ends clean: the problems it started with and the code they were in
+        pending = ([fixmemory.gist(req["error"])], req.get("code") or "") if mode == "fix" and str(req.get("error") or "").strip() and str(req.get("code") or "").strip() else None
         t0 = time.time()
         for rnd in range(1, rounds_allowed + 1):
             if not wants_code:
@@ -786,7 +830,7 @@ def run(req):
             def on_delta(piece, buf=buf):
                 buf.append(piece)
                 _update(text="".join(buf))
-            stream(cfg, system, messages, on_delta, 2200 if mode == "solve" else MAX_TOKENS)
+            stream(cfg, system, messages, on_delta, STAGES[mode][1] if mode in STAGES else MAX_TOKENS)
             text = "".join(buf)
             code = extract_code(text)
             _finish(idx, "done", f"{len(code.splitlines())} lines" if code else "")
@@ -803,7 +847,7 @@ def run(req):
             else:
                 name_issues = []
             i0 = _step("Checking the code is safe to run")
-            unsafe = scan_code(code)
+            unsafe = scan_code(code, packages.available_known())     # libraries already installed on this PC are fine for the assistant to use
             _finish(i0, "warn" if unsafe else "done", f"{len(unsafe)} not allowed" if unsafe else "no file, network or system access")
             name_issues = name_issues + unsafe
             i2 = _step("Checking for errors and layout problems" if engine == "manimgx" else "Test-rendering the scene")
@@ -820,11 +864,22 @@ def run(req):
                 s = report["scenes"][0] if report["scenes"] else {}
                 _finish(i2, "done", (f"{s.get('plays', '?')} animations, {s.get('seconds', 0):.0f} s, clean" if s.get("plays") else "clean") + (" " + report.get("note", "") if report.get("note") else ""))
             if not n_issue:
+                if pending and fixmemory.record(engine, pending[0], pending[1], code):
+                    _finish(_step("Remembered this fix"), "done", "for similar problems later, on this PC only")
                 break
             if rnd == rounds_allowed:
                 break
+            problems = [i["text"] for i in name_issues] + [pr["text"] for pr in report["problems"][:6]] + ([fixmemory.gist(report["error"]["text"])] if report["error"] else [])
+            if pending is None and rnd == 1:
+                pending = (problems, code)          # the first thing that failed: what finally fixes it is worth keeping
+            past = fixmemory.find(engine, " ".join(problems))
+            fb = feedback_for(report, name_issues, code)
+            if past:
+                fixmemory.used(past)
+                _finish(_step("Looked up saved fixes"), "done", f"{len(past)} similar")
+                fb += "\n\n" + fixmemory.prompt_block(past)
             messages.append({"role": "assistant", "content": text})
-            messages.append({"role": "user", "content": feedback_for(report, name_issues, code)})
+            messages.append({"role": "user", "content": fb})
         # optional: let the model look at the storyboard once
         remaining = (len(name_issues) + len(report["problems"]) + (1 if report["error"] else 0)) if report else 0
         if wants_code and final_code and report and not remaining and cfg.get("visual") and cfg["provider"] == "anthropic" and report.get("images"):
@@ -858,7 +913,7 @@ def run(req):
                        "error": report["error"], "seconds": s.get("seconds"), "plays": s.get("plays"), "note": report.get("note", ""),
                        "skipped": report.get("skipped", 0), "rounds": len([x for x in _job["steps"] if x["label"].startswith(("Writing", "Fixing"))]),
                        "elapsed": round(time.time() - t0, 1)}
-        _update(state="done", final={"text": final_text, "code": final_code, "report": summary, "kind": "solve" if mode == "solve" else ""})
+        _update(state="done", final={"text": final_text, "code": final_code, "report": summary, "kind": mode if mode in STAGES else ""})
     except Cancelled:
         _update(state="cancelled")
     except AIError as e:
@@ -940,13 +995,15 @@ def estimate(body):
     prompt = str(body.get("prompt") or "")
     history = [m for m in (body.get("history") or []) if m.get("role") in ("user", "assistant")][-6:]
     mode = body.get("mode") or "write"
-    req = {"prompt": prompt, "solve_first": body.get("solve_first"), "mode": mode}
+    req = {"prompt": prompt, "solve_first": body.get("solve_first"), "plan_first": body.get("plan_first"), "mode": mode}
     solve = wants_solve_first(req, mode)
+    plan = not solve and wants_plan_first(req, mode)
+    staged = solve or plan
     recent = " ".join([prompt] + [str(m.get("text", "")) for m in history if m.get("role") == "user"])
-    guide = len(solve_prompt()) if solve else len(skill_prompt(engine, recent))
-    yours = len(prompt) + sum(len(str(m.get("text", ""))) for m in history) + (0 if solve or not body.get("use_code") else len(str(body.get("code") or "")))
-    return {"tokens": (guide + yours) // 4, "guide_tokens": guide // 4, "your_tokens": yours // 4, "solve_first": solve,
-            "rounds": 1 if solve else MAX_ROUNDS, "output_max": 2200 if solve else MAX_TOKENS}, 200
+    guide = len(solve_prompt() if solve else plan_prompt()) if staged else len(skill_prompt(engine, recent))
+    yours = len(prompt) + sum(len(str(m.get("text", ""))) for m in history) + (0 if staged or not body.get("use_code") else len(str(body.get("code") or "")))
+    return {"tokens": (guide + yours) // 4, "guide_tokens": guide // 4, "your_tokens": yours // 4, "solve_first": solve, "plan_first": plan,
+            "rounds": 1 if staged else MAX_ROUNDS, "output_max": STAGES["solve" if solve else "plan"][1] if staged else MAX_TOKENS}, 200
 
 
 # ---------------------------------------------------------------- checking the user's own code before it is rendered
@@ -978,7 +1035,13 @@ def quick_check(code):
             nxt = re.search(r"^class\s", body, re.M)
             if not re.search(r"^\s+def\s+construct\s*\(", body[:nxt.start()] if nxt else body, re.M):
                 out["issues"].append({"kind": "error", "line": code[:cls.start()].count("\n") + 1, "text": f"Scene {cls.group(1)} has no `def construct(self)`, so there is nothing to render."})
-    out["issues"] += scan_code(code)
+    # the user's own code: a third-party import is not a safety problem, it is either installed or something to offer to install
+    third = packages.scan(code)
+    out["issues"] += scan_code(code, [p["module"] for p in third])
+    for p in third:
+        if not p["installed"]:
+            out["issues"].append({"kind": "package", "line": p["line"], "module": p["module"], "package": p["package"], "known": p["known"],
+                                  "text": f"`{p['module']}` is not installed" + ("" if p["known"] else " (not on Manimo's list of known libraries)") + "."})
     return out
 
 
@@ -986,7 +1049,7 @@ def deep_check(code, scene=None):
     """The same check the assistant uses on its own code: ManimGX `inspect` runs the scene and reports errors with their line and layout
     problems (overlapping text, content outside the frame). Takes a few seconds; Manim CE gets a syntax check only."""
     quick = quick_check(code)
-    if any(i["kind"] in ("error", "safety", "name") for i in quick["issues"]) or not quick["scenes"]:
+    if any(i["kind"] in ("error", "safety", "name", "package") for i in quick["issues"]) or not quick["scenes"]:
         return {"engine": quick["engine"], "issues": quick["issues"], "scenes": quick["scenes"], "deep": False}
     if quick["engine"] != "manimgx":
         return {"engine": "manim", "issues": quick["issues"], "scenes": quick["scenes"], "deep": False,
@@ -1013,6 +1076,24 @@ def handle(method, path, body):
         return read_image(body)
     if method == "POST" and path == "/api/ai/estimate":
         return estimate(body)
+    if method == "GET" and path == "/api/ai/fixes":
+        return fixmemory.stats(), 200
+    if method == "GET" and path == "/api/ai/fixes/list":
+        return {"items": fixmemory.listing(), **fixmemory.stats()}, 200
+    if method == "POST" and path == "/api/ai/fixes/delete":
+        return fixmemory.delete(str(body.get("id") or "")), 200
+    if method == "GET" and path == "/api/ai/fixes/export":
+        return fixmemory.export_pack(), 200
+    if method == "POST" and path == "/api/ai/fixes/import":
+        try:
+            data = json.loads(str(body.get("text") or "")[:400_000])
+        except ValueError:
+            return {"error": "That is not a Manimo fix pack."}, 400
+        return fixmemory.import_pack(data)
+    if method == "POST" and path == "/api/ai/fixes/forget":
+        return fixmemory.forget(), 200
+    if method == "POST" and path == "/api/ai/fixes/enabled":
+        return fixmemory.set_enabled(body.get("enabled")), 200
     if method == "POST" and path == "/api/ai/check":
         code = str(body.get("code") or "")[:400_000]
         if body.get("deep"):

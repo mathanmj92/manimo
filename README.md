@@ -105,6 +105,8 @@ Built by **Mathan Kumar P** (Coimbatore, Tamil Nadu) with **Claude**, an AI assi
 
 With thanks to the **ManimGX** team at Academa and to the developers of **Manim Community Edition**, whose work makes Manimo possible. Manim itself began as Grant Sanderson's animation library for 3Blue1Brown. Thanks also to the authors of Kokoro, ffmpeg, CodeMirror, TeX Live and the other open-source projects listed in [installer/THIRD-PARTY-NOTICES.txt](installer/THIRD-PARTY-NOTICES.txt).
 
+**Ideas.** The assistant's "Plan first" step (a short plan of scenes and narration to check before any code is written) was inspired by how other open projects structure the work: [TheoremExplainAgent](https://github.com/TIGER-AI-Lab/TheoremExplainAgent) by TIGER Lab (MIT), [manimAnimationAgent](https://github.com/ManojINaik/manimAnimationAgent) by Manoj Naik (MIT) and [Eduly](https://github.com/eduly-ai/eduly) (CC BY-NC-SA 4.0). No code, prompts or documents were copied from them; Manimo's version is written from scratch.
+
 ## Licence
 
 Manimo's own code is released under the [MIT licence](LICENSE). The installer bundles third-party software, each under its own licence; see [installer/THIRD-PARTY-NOTICES.txt](installer/THIRD-PARTY-NOTICES.txt).

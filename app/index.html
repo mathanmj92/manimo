@@ -257,6 +257,7 @@
           <div class="chat-opts">
             <label class="chk"><input type="checkbox" id="useCode" checked> Use my code</label>
             <label class="chk" title="For a problem to solve: the assistant shows the worked solution first, and animates it only after you say it looks right"><input type="checkbox" id="solveFirst" checked> Solve first</label>
+            <label class="chk" title="For a lesson or topic: the assistant first writes a short plan (scenes and narration) for you to check, then writes the code scene by scene"><input type="checkbox" id="planFirst"> Plan first</label>
             <label class="chip sm" id="aiEngineChip"><span class="k">Write for</span><select id="aiEngine" aria-label="Engine to write for"><option value="manimgx">ManimGX</option><option value="manim">Manim</option></select></label>
             <span class="spacer"></span><span class="chat-model" id="chatModel"></span>
           </div>
@@ -670,6 +671,21 @@
 </dialog>
 
 <!-- AI settings -->
+<dialog class="dlg wide" id="fixDlg" aria-labelledby="fixTitle">
+  <div class="dlg-head"><h2 id="fixTitle">Saved fixes</h2><button class="icon-btn" data-close aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button></div>
+  <div class="dlg-body">
+    <p class="help" style="margin:0 0 10px">Fixes the assistant found that worked. The closest ones are added to a later fix request. They are stored on this PC only.</p>
+    <div id="fixList" class="fix-list"></div>
+    <div id="fixImport" hidden>
+      <label class="lbl" for="fixImportText">Paste a fix pack someone shared with you</label>
+      <textarea class="input" id="fixImportText" rows="5" spellcheck="false" placeholder='{"manimo_fixes": 1, ...}'></textarea>
+      <p class="help">Fixes you import are sent to your AI service inside later requests, like any other text in them. Import only from someone you trust.</p>
+      <div class="dlg-row"><button class="btn sm primary" id="fixImportGo">Add these fixes</button><button class="btn sm ghost" id="fixImportCancel">Cancel</button></div>
+    </div>
+    <p class="help" id="fixMsg" role="status"></p>
+  </div>
+  <div class="dlg-foot"><button class="btn ghost" id="fixCopy">Copy as a fix pack</button><button class="btn ghost" id="fixImportOpen">Import a pack</button><span class="spacer"></span><button class="btn primary" data-close>Done</button></div>
+</dialog>
 <dialog class="dlg" id="aiDlg" aria-labelledby="aiDlgTitle">
   <div class="dlg-head"><h2 id="aiDlgTitle">AI assistant settings</h2><button class="icon-btn" data-close aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button></div>
   <div class="dlg-body">
@@ -693,6 +709,8 @@
       <select class="input" id="aiModelSel"></select>
       <input class="input" id="aiModelText" type="text" spellcheck="false" placeholder="model name" hidden style="margin-top:8px"></div>
     <div class="field"><label class="chk"><input type="checkbox" id="aiVisual"> Let the assistant look at a picture of its own scene to catch problems (Claude only; uses more of your quota)</label></div>
+    <div class="field"><label class="chk"><input type="checkbox" id="fixMem"> Remember fixes that worked, and reuse them for similar problems</label>
+      <p class="help"><span id="fixMemCount">No fixes saved yet.</span> Saved on this PC only. <button class="linkbtn" id="fixManage" type="button">See and manage</button> <button class="linkbtn" id="fixForget" type="button">Forget all</button></p></div>
     <p class="help" id="aiTestMsg" role="status"></p>
   </div>
   <div class="dlg-foot"><button class="btn ghost" id="aiClearKey">Remove saved key</button><span class="spacer"></span><button class="btn" id="aiTest">Save &amp; test</button><button class="btn primary" id="aiSave">Save</button></div>

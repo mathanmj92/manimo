@@ -2,6 +2,13 @@
 
 All notable changes to Manimo. Versions follow the installer (`installer/Manimo.iss`).
 
+## 1.10.0
+- **Missing packages are found and can be installed.** The code check lists imports that Manimo's Python does not have (for example `scipy`, `sympy`, `cv2`) with an Install button for each, or Install all. It downloads from PyPI, wheels only so no package build script runs, and only after you press the button. A package that is not on Manimo's short list of known libraries asks for a second confirmation.
+- **Plan first** (a switch under the assistant's message box). For a lesson or topic, the assistant first writes a short plan: a title, who it is for, the colours, and 3 to 8 scenes with their narration, about 200 tokens to send. Press "Looks good: write the scenes" to get the code, one scene class per planned scene, or "I will change it" to edit the plan first. Problems still use "Solve first". Ideas credited in the README.
+- **Fix memory.** When the assistant fixes a problem (its own fix rounds, or a "Fix the last error" request), Manimo saves the problem and the few lines that fixed it, on this PC only. Later fix requests include the two or three closest saved fixes, a few hundred tokens at most, and nothing extra when none match. Switch it off, or forget everything, in AI settings. It keeps at most 200 fixes, and skips fixes that were whole rewrites.
+- **Saved fixes list** (AI settings, See and manage): read every saved fix, see how often it was reused, delete one, **copy all as a fix pack** to share as plain text, and **import** a pack someone shared. Imported fixes are checked: only short removed/added code lines are accepted, tags are removed, and repeats are skipped.
+- Libraries you install are allowed in the assistant's own code too, and the assistant is told which ones are installed, so it does not invent imports. `os`, `subprocess` and other system modules are still blocked.
+
 ## 1.9.10
 - **Pictures of problems cost far less.** Attach, paste or drop a picture in the assistant. It is shrunk on your PC and read once into text by a short request; you check and correct the text, and the picture is never sent again.
 - **Solve first, then animate.** For a new problem the assistant first gives a short worked solution (about 800 tokens). Press "Looks right: animate it" to get the animation, or "I will correct it". The switch "Solve first" turns this off.

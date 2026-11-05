@@ -1225,6 +1225,7 @@ function msgHTML(m, idx) {
   var t = mdLite(m.text); if (t) h += '<div class="txt">' + t + '</div>';
   h += codeCardHTML(m, idx) + reportHTML(m.report, idx);
   if (m.kind === 'solve') h += '<div class="solve-act"><button class="btn sm primary" data-act="animate" data-i="' + idx + '">Looks right: animate it</button><button class="btn sm ghost" data-act="fixsolve" data-i="' + idx + '">I will correct it</button></div><p class="help" style="margin:6px 0 0">Check the answer before animating. It costs more to animate a wrong one.</p>';
+  if (m.kind === 'plan') h += '<div class="solve-act"><button class="btn sm primary" data-act="buildplan" data-i="' + idx + '">Looks good: write the scenes</button><button class="btn sm ghost" data-act="fixplan" data-i="' + idx + '">I will change it</button></div><p class="help" style="margin:6px 0 0">Change the plan first if a scene is missing or wrong. It is cheaper than changing code.</p>';
   h += '</div>';
   return h;
 }
@@ -1277,7 +1278,7 @@ function sendAI(o) {
   AI.msgs.push({ role: 'user', text: label });
   var engine = hasCode ? engineOf(code.value) : $('aiEngine').value; store('mgx-ai-engine', $('aiEngine').value);
   AI.busy = true; AI.live = { steps: [], text: '' }; $('chatInput').value = ''; renderChat();
-  api('/api/ai/run', { mode: mode, prompt: text, engine: engine, code: hasCode ? code.value : '', use_code: hasCode, selection: cm.selection(), error: err, history: history, solve_first: !!($('solveFirst') && $('solveFirst').checked) && !o.noSolve }).then(function () {
+  api('/api/ai/run', { mode: mode, prompt: text, engine: engine, code: hasCode ? code.value : '', use_code: hasCode, selection: cm.selection(), error: err, history: history, solve_first: !!($('solveFirst') && $('solveFirst').checked) && !o.noSolve, plan_first: !!($('planFirst') && $('planFirst').checked) && !o.noSolve }).then(function () {
     clearInterval(AI.poll);
     AI.poll = setInterval(function () {
       api('/api/ai/job').then(function (j) { AI.live = j; renderLive(); if (j.state !== 'running') { clearInterval(AI.poll); finishAI(j); } }).catch(function () {});
@@ -1315,6 +1316,8 @@ $('chatLog').addEventListener('click', function (e) {
   else if (act === 'render') applyAICode(i, true);
   else if (act === 'copy') { var m = AI.msgs[i]; (navigator.clipboard ? navigator.clipboard.writeText(m.code) : Promise.reject()).then(function () { toast('Code copied'); }, function () { toast('Could not copy'); }); }
   else if (act === 'animate') sendAI({ text: 'The solution above is correct. Now animate it step by step, exactly as solved, with the numbers computed in the scene.', noSolve: true });
+  else if (act === 'buildplan') sendAI({ text: 'The plan above is approved. Write the complete scene file: one scene class for each planned scene, in order, with its narration, following the plan exactly.', noSolve: true });
+  else if (act === 'fixplan') { var cp = $('chatInput'); cp.value = 'Change the plan: '; cp.focus(); cp.setSelectionRange(cp.value.length, cp.value.length); }
   else if (act === 'fixsolve') { var ci = $('chatInput'); ci.value = 'Correct the solution: '; ci.focus(); ci.setSelectionRange(ci.value.length, ci.value.length); }
   else if (act === 'fixrest') { applyAICode(i, false); sendAI({ mode: 'fix', text: 'Fix the remaining problems.', error: problemsText(AI.msgs[i]) }); }
 });
@@ -1391,11 +1394,13 @@ function sizeEstimate() {
     var box = $('chatInput'); if (!box || $('chatCompose').hidden || DEMO) { return; }
     var text = box.value.trim(), hasCode = !!code.value.trim() && $('useCode').checked, mine = ++estSeq;
     var history = AI.msgs.slice(-6).map(function (m) { return { role: m.role, text: m.role === 'assistant' ? stripCode(m.text) : m.text }; }).filter(function (m) { return m.text; });
-    api('/api/ai/estimate', { prompt: text, mode: hasCode ? 'edit' : 'write', engine: hasCode ? engineOf(code.value) : $('aiEngine').value, code: hasCode ? code.value : '', use_code: hasCode, history: history, solve_first: $('solveFirst').checked }).then(function (r) {
+    api('/api/ai/estimate', { prompt: text, mode: hasCode ? 'edit' : 'write', engine: hasCode ? engineOf(code.value) : $('aiEngine').value, code: hasCode ? code.value : '', use_code: hasCode, history: history, solve_first: $('solveFirst').checked, plan_first: $('planFirst').checked }).then(function (r) {
       if (mine !== estSeq) return;
       var n = function (x) { return Math.round(x / 100) * 100; };
       $('chatEst').textContent = r.solve_first
         ? 'Solves first: about ' + n(r.tokens).toLocaleString() + ' tokens now. The animation is a separate, larger step that you approve.'
+        : r.plan_first
+        ? 'Plans first: about ' + n(r.tokens).toLocaleString() + ' tokens now. Writing the scenes is a separate, larger step that you approve.'
         : 'About ' + n(r.tokens).toLocaleString() + ' tokens to send (' + n(r.guide_tokens).toLocaleString() + ' of them the built-in guide). Each fix round sends it again, up to ' + r.rounds + ' rounds.';
     }).catch(function () {});
   }, 600);
@@ -1403,6 +1408,7 @@ function sizeEstimate() {
 $('chatInput').addEventListener('input', sizeEstimate);
 $('useCode').addEventListener('change', sizeEstimate);
 $('solveFirst').addEventListener('change', sizeEstimate);
+$('planFirst').addEventListener('change', sizeEstimate);
 $('aiEngine').addEventListener('change', sizeEstimate);
 $('aiNew').addEventListener('click', function () { if (AI.busy) return; AI.msgs = []; saveChat(); renderChat(); });
 $('aiSettingsBtn').addEventListener('click', openAISettings);
@@ -1424,8 +1430,42 @@ function openAISettings() {
   $('aiAgentHelp').textContent = ags.length ? 'Found on this PC. It must be signed in already. Each request counts against that account’s usage.' : 'No assistant found. Install Claude Code (or Codex / Gemini CLI), sign in once in a terminal, then reopen this window. Or pick an API key.';
   setProvider(c.provider === 'anthropic' || c.provider === 'openai' || c.provider === 'agent' ? (c.provider === 'anthropic' && !c.has_key && ags.length ? 'agent' : c.provider) : 'agent');
   $('aiKeyHelp').textContent = c.has_key ? 'A key is saved. Leave this empty to keep it.' : '';
-  $('aiDlg').showModal();
+  paintFixes(); $('aiDlg').showModal();
 }
+function paintFixes(s) {
+  function show(r) { $('fixMem').checked = !!r.enabled; $('fixMemCount').textContent = r.count ? r.count + (r.count === 1 ? ' fix saved.' : ' fixes saved.') : 'No fixes saved yet.'; }
+  if (s) show(s); else api('/api/ai/fixes').then(show).catch(function () {});
+}
+$('fixMem').addEventListener('change', function () { api('/api/ai/fixes/enabled', { enabled: this.checked }).then(paintFixes).catch(function () {}); });
+$('fixForget').addEventListener('click', function () { if (window.confirm('Forget every saved fix? The assistant will start learning again from scratch.')) api('/api/ai/fixes/forget', {}).then(function (s) { paintFixes(s); toast('Saved fixes forgotten'); }).catch(function () {}); });
+/* the list of saved fixes: read them, delete one, share a pack as text */
+function paintFixList() {
+  api('/api/ai/fixes/list').then(function (r) {
+    $('fixList').innerHTML = r.items.length ? r.items.map(function (it) {
+      var when = new Date(it.ts * 1000).toLocaleDateString();
+      return '<div class="fix-item"><p class="fix-problem">' + esc(it.problem) + '</p><pre>' + esc(it.fix) + '</pre><div class="fix-meta"><span>' +
+        (it.uses ? 'Used ' + it.uses + (it.uses === 1 ? ' time' : ' times') : 'Not used yet') + ' · saved ' + esc(when) + (it.engine === 'manim' ? ' · Manim' : '') + '</span><span class="spacer"></span><button class="linkbtn" data-fixdel="' + esc(it.id) + '">Delete</button></div></div>';
+    }).join('') : '<p class="help">Nothing saved yet. When the assistant fixes a problem, it appears here.</p>';
+    paintFixes(r);
+  }).catch(function () {});
+}
+$('fixManage').addEventListener('click', function () { $('fixMsg').textContent = ''; $('fixImport').hidden = true; paintFixList(); $('fixDlg').showModal(); });
+$('fixList').addEventListener('click', function (e) { var b = e.target.closest('[data-fixdel]'); if (b) api('/api/ai/fixes/delete', { id: b.dataset.fixdel }).then(paintFixList).catch(function () {}); });
+$('fixCopy').addEventListener('click', function () {
+  api('/api/ai/fixes/export').then(function (pack) {
+    if (!pack.items.length) { $('fixMsg').textContent = 'Nothing to copy yet.'; return; }
+    var text = JSON.stringify(pack);
+    return navigator.clipboard.writeText(text).then(function () { $('fixMsg').textContent = 'Copied ' + pack.items.length + ' fixes. Paste them into a message or file to share.'; });
+  }).catch(function () { $('fixMsg').textContent = 'Could not copy. Try again.'; });
+});
+$('fixImportOpen').addEventListener('click', function () { $('fixImport').hidden = false; $('fixImportText').focus(); });
+$('fixImportCancel').addEventListener('click', function () { $('fixImport').hidden = true; $('fixImportText').value = ''; });
+$('fixImportGo').addEventListener('click', function () {
+  api('/api/ai/fixes/import', { text: $('fixImportText').value.trim() }).then(function (r) {
+    $('fixMsg').textContent = 'Added ' + r.added + (r.added === 1 ? ' fix' : ' fixes') + (r.skipped ? ', skipped ' + r.skipped + ' (repeats or not valid)' : '') + '.';
+    $('fixImport').hidden = true; $('fixImportText').value = ''; paintFixList();
+  }).catch(function (e) { $('fixMsg').textContent = e.message; });
+});
 function setProvider(p) {
   document.querySelectorAll('#aiProvider [role=radio]').forEach(function (b) { b.setAttribute('aria-checked', String(b.dataset.v === p)); });
   $('aiProvider').dataset.v = p; $('aiUrlRow').hidden = p !== 'openai'; $('aiGetKey').parentElement.hidden = p !== 'anthropic';

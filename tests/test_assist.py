@@ -48,6 +48,50 @@ class SolveFirst(unittest.TestCase):
         self.assertNotIn("current_code", seen["last"])        # the editor's code is not sent for a solve step
 
 
+LESSON = "Teach how a capacitor charges through a resistor, for first-year students, with a worked example"
+
+
+class PlanFirst(unittest.TestCase):
+    def test_a_new_lesson_is_planned_first_when_the_switch_is_on(self):
+        self.assertTrue(ai.wants_plan_first({"prompt": LESSON, "plan_first": True}, "write"))
+        self.assertFalse(ai.wants_plan_first({"prompt": LESSON, "plan_first": False}, "write"))
+
+    def test_not_for_edits_short_requests_or_other_modes(self):
+        self.assertFalse(ai.wants_plan_first({"prompt": "Make the circle bigger and slower in the second scene please", "plan_first": True}, "write"))
+        self.assertFalse(ai.wants_plan_first({"prompt": "capacitors", "plan_first": True}, "write"))
+        self.assertFalse(ai.wants_plan_first({"prompt": LESSON, "plan_first": True}, "explain"))
+
+    def test_a_problem_is_solved_first_not_planned(self):
+        req = {"prompt": PROBLEM, "solve_first": True, "plan_first": True}
+        self.assertTrue(ai.wants_solve_first(req, "write"))
+        self.assertFalse(ai.wants_plan_first(req, "write"))
+
+    def test_the_plan_is_text_only_with_its_own_small_prompt(self):
+        seen = {}
+
+        def fake_stream(cfg, system, messages, on_delta, max_tokens=ai.MAX_TOKENS):
+            seen.update(system=system, max_tokens=max_tokens, last=messages[-1]["content"])
+            on_delta("Title: Charging\nScenes:\n1. The circuit - a battery, a switch, R and C. Narration: Here is the circuit.")
+        with mock.patch.object(ai, "stream", fake_stream), mock.patch.object(ai, "load_settings", lambda: {"provider": "agent", "agent": "claude"}):
+            ai._job.clear()
+            ai._job.update({"state": "running", "steps": [], "text": "", "final": None, "error": None})
+            ai.run({"prompt": LESSON, "mode": "write", "plan_first": True, "code": "import manimgx as m", "use_code": True, "history": []})
+        self.assertEqual(ai._job["state"], "done")
+        self.assertEqual(ai._job["final"]["kind"], "plan")
+        self.assertEqual(ai._job["final"]["code"], "")
+        self.assertEqual(seen["system"], ai.plan_prompt())
+        self.assertEqual(seen["max_tokens"], 1800)
+        self.assertNotIn("current_code", seen["last"])
+        self.assertLess(len(ai.plan_prompt()) // 4, 400)
+
+    def test_the_estimate_says_a_plan_is_the_cheap_step(self):
+        full, _ = ai.estimate({"prompt": LESSON, "plan_first": False, "solve_first": False})
+        plan, _ = ai.estimate({"prompt": LESSON, "plan_first": True, "solve_first": False})
+        self.assertTrue(plan["plan_first"])
+        self.assertEqual(plan["rounds"], 1)
+        self.assertLess(plan["tokens"] * 3, full["tokens"])
+
+
 class Estimate(unittest.TestCase):
     def test_solving_first_is_much_cheaper_than_the_full_request(self):
         full, _ = ai.estimate({"prompt": PROBLEM, "solve_first": False})
