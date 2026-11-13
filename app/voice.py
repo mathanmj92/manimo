@@ -8,6 +8,7 @@ sit in app\\models (or %LOCALAPPDATA%\\Manimo\\data\\kokoro).
 """
 import hashlib
 import os
+import re
 import threading
 from dataclasses import dataclass
 from pathlib import Path
@@ -85,10 +86,93 @@ def _clean(name, speed):
     return name, round(speed, 2)
 
 
+# ---------------------------------------------------------------- how words are pronounced, and per-scene voice settings
+# Kept as plain comment lines in the lesson's file, so they travel with it:
+#   # say: sin = sine          (anywhere in the file: say "sine" wherever "sin" is written)
+#   # say-defaults: off        (do not use the built-in list below)
+#   # voice: bf_emma           (in the comment lines directly above a scene class)
+#   # speed: 1.1
+SAY_LINE = re.compile(r"^[ \t]*#[ \t]*say:[ \t]*(.+?)[ \t]*=[ \t]*(.+?)[ \t]*$", re.M)
+DEFAULTS_OFF = re.compile(r"^[ \t]*#[ \t]*say-defaults:[ \t]*off\b", re.M | re.I)
+BUILTIN_PRON = [
+    ("kΩ", "kilo ohms"), ("MΩ", "mega ohms"), ("Ω", "ohms"), ("μF", "microfarads"), ("µF", "microfarads"), ("°C", "degrees Celsius"),
+    ("°", " degrees"), ("ΔV", "delta V"), ("Δ", "delta "), ("π", "pi"), ("θ", "theta"), ("μ", "mu"), ("µ", "mu"), ("ω", "omega"), ("λ", "lambda"),
+    ("α", "alpha"), ("β", "beta"), ("γ", "gamma"), ("ε", "epsilon"), ("ρ", "rho"), ("σ", "sigma"), ("τ", "tau"), ("φ", "phi"),
+    ("±", "plus or minus"), ("≈", "approximately"), ("≠", "not equal to"), ("≤", "less than or equal to"), ("≥", "greater than or equal to"),
+    ("×", "times"), ("÷", "divided by"), ("→", "gives"), ("√", "square root of "), ("∞", "infinity"), ("²", " squared"), ("³", " cubed"),
+    ("sin", "sine"), ("cos", "cosine"), ("tan", "tangent"),
+]
+_rules = []             # (compiled pattern, replacement), in the order they are applied
+_rules_key = ""
+
+
+def _rule(a, b):
+    pat = re.escape(a)
+    if re.match(r"[A-Za-z0-9_]", a[:1]):          # a plain word is matched as a whole word; symbols such as 2π or x² are matched anywhere
+        pat = r"(?<![A-Za-z0-9_])" + pat
+    if re.match(r"[A-Za-z0-9_]", a[-1:]):
+        pat += r"(?![A-Za-z0-9_])"
+    if not re.match(r"[A-Za-z0-9_]", a[:1]):                 # a symbol stands apart from its neighbours when spoken: 2π is "2 pi"
+        b = " " + b.strip() + " "
+    return re.compile(pat), b
+
+
+def set_pronunciations(pairs, defaults=True):
+    """Use these (written, spoken) pairs, then the built-in ones, for every line spoken from now on."""
+    global _rules, _rules_key
+    pairs = [(str(a), str(b)) for a, b in pairs if str(a).strip()]
+    _rules = [_rule(a, b) for a, b in pairs + (BUILTIN_PRON if defaults else [])]
+    _rules_key = hashlib.sha1(repr((pairs, bool(defaults))).encode("utf-8")).hexdigest()[:8] if (pairs or not defaults) else ""
+
+
+def pronounce(text):
+    """The words as they should be spoken (the text on screen is not changed)."""
+    for pat, rep in _rules:
+        text = pat.sub(rep, text)
+    return re.sub(r"\s+([.,;:!?])", r"\1", " ".join(text.split()))      # no stray space before punctuation
+
+
+def annotations(code, scene=None):
+    """What the file says about speech: pronunciations, and the voice and speed set for `scene` in the comments above its class."""
+    code = code or ""
+    out = {"pron": [(a.strip(), b.strip()) for a, b in SAY_LINE.findall(code)], "defaults": not DEFAULTS_OFF.search(code), "voice": None, "speed": None}
+    if scene:
+        m = re.search(r"^class[ \t]+" + re.escape(scene) + r"\b", code, re.M)
+        if m:
+            above = code[:m.start()].split("\n")[:-1]
+            while above and above[-1].lstrip().startswith("#"):
+                line = above.pop().strip().lstrip("#").strip()
+                k = re.match(r"(voice|speed)\s*:\s*(\S+)", line, re.I)
+                if k and k.group(1).lower() == "voice" and k.group(2) in VOICES and out["voice"] is None:
+                    out["voice"] = k.group(2)
+                elif k and k.group(1).lower() == "speed" and out["speed"] is None:
+                    try:
+                        out["speed"] = float(k.group(2))
+                    except ValueError:
+                        pass
+    return out
+
+
+def source_and_scene(argv):
+    """The code file and the scene named in manimgx arguments (`render file.py Scene ...`), when both are there."""
+    for i, a in enumerate(argv):
+        if a.lower().endswith(".py") and os.path.isfile(a):
+            nxt = argv[i + 1] if i + 1 < len(argv) else ""
+            return a, (nxt if nxt and not nxt.startswith("-") else None)
+    return None, None
+
+
+def configure(code, scene, name, speed):
+    """Apply a file's pronunciations and the scene's own voice and speed. Returns the (voice, speed) to use."""
+    a = annotations(code, scene)
+    set_pronunciations(a["pron"], a["defaults"])
+    return _clean(a["voice"] or name, a["speed"] if a["speed"] is not None else speed)
+
+
 def speak(text, name=DEFAULT_VOICE, speed=1.0):
     """Returns the path of a wav file saying `text` (made once, then reused)."""
     name, speed = _clean(name, speed)
-    text = " ".join(str(text).split())
+    text = pronounce(" ".join(str(text).split()))
     if not text:
         raise ValueError("There is nothing to say.")
     key = hashlib.sha1(f"{name}|{speed}|{text}".encode("utf-8")).hexdigest()[:20]
@@ -146,6 +230,7 @@ class KokoroVoice:
     """A ManimGX voice. Its fields name it in ManimGX's own cache, so changing the voice or speed speaks the line again."""
     name: str = DEFAULT_VOICE
     speed: float = 1.0
+    pron: str = ""                     # names the pronunciation list in use, so a changed list speaks the line again
 
     def __call__(self, text):
         from manimgx.audio import Speech

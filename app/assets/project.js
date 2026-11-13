@@ -533,7 +533,7 @@ $('veExport').addEventListener('click', function () {
   if (!T().clips.length) { toast('Add a video to the timeline first'); return; }
   pause(); clearTimeout(saveTl);
   var box = $('veExp'); box.hidden = false; box.innerHTML = '<p>Starting…</p><div class="bar"><i style="transform:scaleX(0)"></i></div>';
-  api('/api/project/timeline', { timeline: cleanTl() }).then(function () { return api('/api/project/export', { preset: $('vePreset').value, captions: $('veCaps').checked }); }).then(function () {
+  api('/api/project/timeline', { timeline: cleanTl() }).then(function () { return api('/api/project/export', { preset: $('vePreset').value, captions: $('veCaps').checked, style: window.MGXCaptions ? window.MGXCaptions.style() : undefined }); }).then(function () {
     clearInterval(exportPoll);
     exportPoll = setInterval(function () {
       api('/api/project/export').then(function (j) {

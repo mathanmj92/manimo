@@ -13,6 +13,14 @@ var quickTimer = null, deepTimer = null;
 
 function issuesNow() { return (state.deep && state.deepFor === state.lastCode ? state.deep.issues : state.quick && state.quick.issues) || []; }
 
+/* the same findings as marks beside the line numbers (red for errors, amber for layout notes and missing packages) */
+function paintMarks(clear) {
+  if (!M.setCheckMarks) return;
+  var m = {};
+  if (!clear) issuesNow().forEach(function (i) { if (i.line) m[i.line] = (i.kind === 'layout' || i.kind === 'package') ? (m[i.line] || 'warn') : 'err'; });
+  M.setCheckMarks(m);
+}
+
 function paintPill() {
   var n = issuesNow().length, code = M.getCode();
   if (!code.trim()) { pill.hidden = true; panel.hidden = true; return; }
@@ -52,7 +60,7 @@ function quick() {
   if (!code.trim()) { state.quick = null; paintPill(); return; }
   M.api('/api/ai/check', { code: code }).then(function (r) {
     if (mine !== state.seq) return;
-    state.quick = r; paintPill();
+    state.quick = r; paintPill(); paintMarks();
     if (state.wantDeep && !r.issues.some(function (i) { return i.kind === 'error' || i.kind === 'safety'; })) deepSoon(600);
   }).catch(function () {});
 }
@@ -65,6 +73,7 @@ function deep() {
     if (mine !== state.deepSeq) return;
     state.deep = r; state.deepFor = code;
     if (code !== M.getCode()) { state.deepFor = ''; }   // edited while it ran: the result is for older code
+    else paintMarks();
   }).catch(function () {}).then(function () { state.busy = false; paintPill(); });
 }
 function deepSoon(ms) { clearTimeout(deepTimer); deepTimer = setTimeout(function () { if (!M.isRendering()) deep(); }, ms); }
@@ -74,6 +83,7 @@ function edited() {
   var code = M.getCode(), grew = code.length - state.lastLen;
   state.lastLen = code.length;
   clearTimeout(quickTimer); quickTimer = setTimeout(quick, 450);
+  paintMarks(true);                                                   // line numbers are stale until the next check
   state.deep = state.deepFor === code ? state.deep : state.deep;     // kept until the code changes
   if (grew >= 80 || state.lastCode === '') { state.wantDeep = true; }   // a paste, or the first code in an empty editor
   paintPill();

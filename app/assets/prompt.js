@@ -6,7 +6,16 @@ var dlg = document.getElementById('promptDlg'), body = document.getElementById('
 if (!dlg || !body) return;
 
 var D = null, loading = null, built = false;
-var inputs = {}, customs = {}, subj = 'All';
+var inputs = {}, customs = {}, subj = 'All', level = '', query = '';
+var LEVELS = ['School (class 6 to 10)', 'Class 11 and 12', 'College (first year)'];
+var LEVEL_OF = { pythagoras: 0, 'circle-area': 0, 'pb-circle': 0, derivative: 1, 'rc-charging': 1, projectile: 1, shm: 1, 'pb-incline': 1, 'pb-projectile': 1, 'pb-atwood': 1, 'pb-ladder': 1, 'th-relativity': 1,
+  'pb-beam': 2, 'pb-resultant': 2, 'th-box': 2, 'th-tunnel': 2, 'th-partition': 2, 'th-maxwell': 2, 'th-fourier': 2 };   // defaults; an entry in prompts.json can set its own "level"
+function levelOf(e) { return e.level || LEVELS[LEVEL_OF[e.id]] || ''; }
+function mem(key) { try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch (x) { return []; } }
+function remember(key, id, on) {
+  var list = mem(key).filter(function (x) { return x !== id; }); if (on !== false) list.push(id);
+  try { localStorage.setItem(key, JSON.stringify(list.slice(-200))); } catch (x) {}
+}
 var pre, note, libList, libFilter;
 
 function h(tag, cls, text) { var n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
@@ -133,7 +142,19 @@ function buildAll() {
     b.addEventListener('click', function () { subj = name; Array.prototype.forEach.call(libFilter.children, function (x) { x.setAttribute('aria-pressed', String(x === b)); }); drawLib(); });
     libFilter.appendChild(b);
   });
-  s2.appendChild(libFilter); s2.appendChild(libList); body.appendChild(s2);
+  var favChip = h('button', 'chip sm', '\u2605 Favourites'); favChip.type = 'button'; favChip.setAttribute('aria-pressed', 'false');
+  favChip.addEventListener('click', function () { subj = 'Favourites'; Array.prototype.forEach.call(libFilter.children, function (x) { x.setAttribute('aria-pressed', String(x === favChip)); }); drawLib(); });
+  libFilter.appendChild(favChip);
+  var tools = h('div', 'pr-tools'), search = h('input', 'input sm'), lv = h('select', 'input sm'), ask = h('button', 'btn sm ghost', 'Request a prompt');
+  search.type = 'search'; search.placeholder = 'Search the library'; search.setAttribute('aria-label', 'Search the library'); search.autocomplete = 'off';
+  search.addEventListener('input', function () { query = search.value.trim().toLowerCase(); drawLib(); });
+  lv.setAttribute('aria-label', 'Filter by class level');
+  [['', 'Any level']].concat(LEVELS.map(function (x) { return [x, x]; })).forEach(function (o) { var op = h('option', null, o[1]); op.value = o[0]; lv.appendChild(op); });
+  lv.addEventListener('change', function () { level = lv.value; drawLib(); });
+  ask.type = 'button'; ask.title = 'Opens a short form on GitHub asking for a prompt you would like added';
+  ask.addEventListener('click', function () { if (window.MANIMO) window.MANIMO.openUrl('https://github.com/mathanmj92/manimo/issues/new?labels=prompt-request&title=Prompt+request'); });
+  tools.appendChild(search); tools.appendChild(lv); tools.appendChild(ask);
+  s2.appendChild(libFilter); s2.appendChild(tools); s2.appendChild(libList); body.appendChild(s2);
   drawLib();
 
   var s3 = section('Follow-up prompts', 'prFollow');
@@ -150,15 +171,28 @@ function buildAll() {
 
 function drawLib() {
   libList.textContent = '';
-  D.library.filter(function (e) { return subj === 'All' || e.subject === subj; }).forEach(function (e) {
+  var favs = mem('mgx-prompt-fav'), used = mem('mgx-prompt-used');
+  var shown = D.library.filter(function (e) {
+    if (subj === 'Favourites' ? favs.indexOf(e.id) < 0 : subj !== 'All' && e.subject !== subj) return false;
+    if (level && levelOf(e) !== level) return false;
+    return !query || (e.title + ' ' + e.line + ' ' + e.subject + ' ' + (e.topic || '')).toLowerCase().indexOf(query) >= 0;
+  });
+  if (!shown.length) libList.appendChild(h('li', 'pr-none', subj === 'Favourites' && !favs.length ? 'No favourites yet. Press the star on a prompt to keep it here.' : 'Nothing matches. Try another word or level, or request a prompt.'));
+  shown.forEach(function (e) {
     var li = h('li', 'pr-item'), left = h('div', 'pr-item-t'), t = h('h4', null, e.title); t.appendChild(h('span', 'pr-tag', e.subject));
+    if (levelOf(e)) t.appendChild(h('span', 'pr-tag pr-lvl', levelOf(e)));
+    if (used.indexOf(e.id) >= 0) t.appendChild(h('span', 'pr-tag pr-used', 'Used before'));
+    var star = h('button', 'pr-star', favs.indexOf(e.id) >= 0 ? '\u2605' : '\u2606'); star.type = 'button'; star.setAttribute('aria-pressed', String(favs.indexOf(e.id) >= 0));
+    star.setAttribute('aria-label', (favs.indexOf(e.id) >= 0 ? 'Remove ' : 'Add ') + e.title + (favs.indexOf(e.id) >= 0 ? ' from favourites' : ' to favourites'));
+    star.addEventListener('click', function () { remember('mgx-prompt-fav', e.id, favs.indexOf(e.id) < 0); drawLib(); });
+    t.appendChild(star);
     left.appendChild(t); left.appendChild(h('p', null, e.line));
     var acts = h('div', 'pr-acts'), open = h('button', 'btn sm', 'Open in builder'), cp = h('button', 'btn sm', 'Copy prompt');
     open.type = cp.type = 'button';
     if (e.text) {            // a ready-made problem or theory prompt: edit it in the assistant box, or copy it
       var use = h('button', 'btn sm primary', 'Use in Ask AI'); use.type = 'button';
       use.setAttribute('aria-label', 'Send the prompt for ' + e.title + ' to the assistant');
-      use.addEventListener('click', function () { if (window.MGXApp) { dlg.close(); window.MGXApp.askAI(e.text); } });
+      use.addEventListener('click', function () { if (window.MGXApp) { remember('mgx-prompt-used', e.id); dlg.close(); window.MGXApp.askAI(e.text); } });
       cp.setAttribute('aria-label', 'Copy the prompt for ' + e.title);
       cp.addEventListener('click', function () { copyText(e.text, function (ok) { flash(cp, ok, 'Select it in Ask AI', 'Copy prompt'); }); });
       acts.appendChild(use); acts.appendChild(cp); li.appendChild(left); li.appendChild(acts); libList.appendChild(li);
@@ -166,7 +200,7 @@ function drawLib() {
     }
     open.setAttribute('aria-label', 'Open ' + e.title + ' in the builder'); cp.setAttribute('aria-label', 'Copy the prompt for ' + e.title);
     open.addEventListener('click', function () {
-      useEntry(e); note.textContent = 'Filled in: ' + e.title + '. Change anything you like.';
+      remember('mgx-prompt-used', e.id); useEntry(e); note.textContent = 'Filled in: ' + e.title + '. Change anything you like.';
       var s = document.getElementById('prBuild'); if (s) s.scrollIntoView({ block: 'start' }); inputs.TOPIC.focus();
     });
     cp.addEventListener('click', function () { copyText(build(entryValues(e), false), function (ok) { flash(cp, ok, 'Select it in the builder', 'Copy prompt'); }); });
@@ -176,7 +210,7 @@ function drawLib() {
 
 function open() {
   if (!dlg.open) dlg.showModal();
-  if (built) { inputs.TOPIC.focus(); return Promise.resolve(); }
+  if (built) { drawLib(); inputs.TOPIC.focus(); return Promise.resolve(); }          // redrawn so "Used before" and the stars are current
   body.textContent = ''; body.appendChild(h('p', 'pr-lead', 'Loading…'));
   return load().then(function () { buildAll(); inputs.TOPIC.focus(); }, function () {
     body.textContent = ''; body.appendChild(h('p', 'pr-lead', 'The prompt library could not be loaded. Close this window and try again, or restart Manimo.'));

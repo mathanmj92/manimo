@@ -392,6 +392,11 @@ def stream_anthropic(cfg, system, messages, on_delta, max_tokens=MAX_TOKENS):
             kind = data.get("type")
             if kind == "content_block_delta" and (data.get("delta") or {}).get("type") == "text_delta":
                 on_delta(data["delta"]["text"])
+            elif kind == "message_start":                       # what was sent (a cached prompt still counts)
+                u = (data.get("message") or {}).get("usage") or {}
+                _tl.exact["in"] = sum(int(u.get(k) or 0) for k in ("input_tokens", "cache_creation_input_tokens", "cache_read_input_tokens"))
+            elif kind == "message_delta":                       # what came back
+                _tl.exact["out"] = int((data.get("usage") or {}).get("output_tokens") or 0)
             elif kind == "error":
                 raise AIError((data.get("error") or {}).get("message", "The provider reported an error."))
     finally:
@@ -528,6 +533,10 @@ def stream_agent(cfg, system, messages, on_delta, max_tokens=MAX_TOKENS):
                         got = True
                         on_delta(d["text"])
                 elif ev.get("type") == "result":
+                    u = ev.get("usage") or {}
+                    if u.get("output_tokens"):
+                        _tl.exact["in"] = sum(int(u.get(k) or 0) for k in ("input_tokens", "cache_creation_input_tokens", "cache_read_input_tokens"))
+                        _tl.exact["out"] = int(u.get("output_tokens") or 0)
                     if ev.get("is_error"):
                         failure = str(ev.get("result") or "")
                     elif not got and ev.get("result"):      # nothing streamed: use the final text
@@ -558,14 +567,99 @@ def stream_agent(cfg, system, messages, on_delta, max_tokens=MAX_TOKENS):
         raise AIError("%s returned nothing. Try again." % a["label"])
 
 
-def stream(cfg, system, messages, on_delta, max_tokens=MAX_TOKENS):
+# ---------------------------------------------------------------- what a request costs (kept on this PC, never sent anywhere)
+USAGE_FILE = DATA_DIR / "usage.json"
+_tl = threading.local()                  # the exact token counts a provider reported for the call in progress
+_usage_lock = threading.Lock()
+_run_usage = {"in": 0, "out": 0, "calls": 0, "exact": True}
+
+
+def _chars(system, messages):
+    n = len(system or "")
+    for m in messages:
+        c = m["content"]
+        n += len(c) if isinstance(c, str) else sum(len(p.get("text", "")) + (1500 if p.get("type") == "image" else 0) for p in c)
+    return n
+
+
+def begin_usage():
+    with _usage_lock:
+        _run_usage.update({"in": 0, "out": 0, "calls": 0, "exact": True})
+
+
+def usage_snapshot():
+    with _usage_lock:
+        return dict(_run_usage)
+
+
+def _month():
+    return time.strftime("%Y-%m")
+
+
+def _read_usage():
     try:
-        return _stream_once(cfg, system, messages, on_delta, max_tokens)
-    except AIError as e:
-        if cfg["provider"] == "agent" and cfg.get("agent_model") and "selected model" in str(e):
-            # the agent does not know the saved model name: try once with the agent's own default instead of failing
-            return _stream_once(dict(cfg, agent_model=""), system, messages, on_delta, max_tokens)
-        raise
+        data = json.loads(USAGE_FILE.read_text(encoding="utf-8"))
+        return data if isinstance(data, dict) else {}
+    except (OSError, ValueError):
+        return {}
+
+
+def _write_month(add_in=0, add_out=0, add_requests=0, add_seconds=0.0):
+    with _usage_lock:
+        data = _read_usage()
+        m = data.setdefault(_month(), {"in": 0, "out": 0, "requests": 0, "seconds": 0.0})
+        m["in"] += int(add_in)
+        m["out"] += int(add_out)
+        m["requests"] += int(add_requests)
+        m["seconds"] = round(m["seconds"] + float(add_seconds), 1)
+        for old in sorted(data)[:-12]:                          # a year is plenty
+            del data[old]
+        try:
+            USAGE_FILE.parent.mkdir(parents=True, exist_ok=True)
+            USAGE_FILE.write_text(json.dumps(data), encoding="utf-8")
+        except OSError:
+            pass
+
+
+def count_request():
+    _write_month(add_requests=1)
+
+
+def usage_summary():
+    m = _read_usage().get(_month(), {})
+    return {"month": _month(), "in": m.get("in", 0), "out": m.get("out", 0), "requests": m.get("requests", 0), "seconds": m.get("seconds", 0.0)}
+
+
+def _tally(system, messages, reply, exact, seconds):
+    """Add one model call: the provider's own counts when it gave them, otherwise about one token for every four characters."""
+    ok = bool(exact.get("in")) and bool(exact.get("out"))
+    t_in = exact["in"] if ok else max(1, _chars(system, messages) // 4)
+    t_out = exact["out"] if ok else max(1, len(reply) // 4)
+    with _usage_lock:
+        _run_usage["in"] += t_in
+        _run_usage["out"] += t_out
+        _run_usage["calls"] += 1
+        _run_usage["exact"] = _run_usage["exact"] and ok
+    _write_month(t_in, t_out, 0, seconds)
+
+
+def stream(cfg, system, messages, on_delta, max_tokens=MAX_TOKENS):
+    buf, t0 = [], time.time()
+    _tl.exact = {}
+
+    def tap(piece):
+        buf.append(piece)
+        on_delta(piece)
+    try:
+        try:
+            return _stream_once(cfg, system, messages, tap, max_tokens)
+        except AIError as e:
+            if cfg["provider"] == "agent" and cfg.get("agent_model") and "selected model" in str(e):
+                # the agent does not know the saved model name: try once with the agent's own default instead of failing
+                return _stream_once(dict(cfg, agent_model=""), system, messages, tap, max_tokens)
+            raise
+    finally:
+        _tally(system, messages, "".join(buf), dict(getattr(_tl, "exact", {})), time.time() - t0)
 
 
 def _stream_once(cfg, system, messages, on_delta, max_tokens=MAX_TOKENS):
@@ -791,6 +885,7 @@ def _image_block(path):
 
 
 def run(req):
+    begin_usage()
     cfg = load_settings()
     engine = "manim" if req.get("engine") == "manim" else "manimgx"
     mode = req.get("mode") or "write"
@@ -913,7 +1008,11 @@ def run(req):
                        "error": report["error"], "seconds": s.get("seconds"), "plays": s.get("plays"), "note": report.get("note", ""),
                        "skipped": report.get("skipped", 0), "rounds": len([x for x in _job["steps"] if x["label"].startswith(("Writing", "Fixing"))]),
                        "elapsed": round(time.time() - t0, 1)}
-        _update(state="done", final={"text": final_text, "code": final_code, "report": summary, "kind": mode if mode in STAGES else ""})
+        us = usage_snapshot()
+        count_request()
+        _update(state="done", final={"text": final_text, "code": final_code, "report": summary, "kind": mode if mode in STAGES else "",
+                                     "usage": {"in": us["in"], "out": us["out"], "calls": us["calls"], "exact": us["exact"], "seconds": round(time.time() - t0, 1),
+                                               "rounds": summary["rounds"] if summary else (1 if us["calls"] else 0)}})
     except Cancelled:
         _update(state="cancelled")
     except AIError as e:
@@ -986,7 +1085,73 @@ def read_image(body):
     text = "".join(buf).strip()
     if not text:
         return {"error": "Nothing could be read from that picture."}, 502
+    count_request()
     return {"text": text[:6000]}, 200
+
+
+REWRITE_SYSTEM = (
+    "You rewrite the spoken narration of a teaching video. You get numbered lines. Return the same lines, rewritten as asked, as one JSON object that maps each "
+    "line number (as a string) to its new text, and nothing else.\n"
+    "Rules: keep the meaning, every number and every unit exactly right. Keep the same number of [bracketed] parts in each line (a bracketed part marks the words an "
+    "animation plays on; keep it around the same idea). Write the way it is spoken: no symbols, spell out units and operators (kilonewtons, plus, squared). "
+    "Plain sentences, one idea each. Never add facts that are not in the line.")
+STYLES = {
+    "shorter": "Make every line about a third shorter. Drop filler and repeated ideas; keep the facts.",
+    "simpler": "Say the same thing in simpler words and shorter sentences, for a student who finds this hard. Explain any term you must keep in a few words.",
+    "split": "Break any line over 30 words into a shorter version that covers the same points; leave shorter lines as they are.",
+}
+
+
+def rewrite_narration(body):
+    """Rewrite the spoken lines of a file (only the text inside the quotes; the code is never sent). Returns the new code and what changed."""
+    import narration
+    code, style = str(body.get("code") or "")[:400_000], str(body.get("style") or "shorter")
+    level = re.sub(r"[^A-Za-z0-9 ,.\-]", "", str(body.get("level") or ""))[:60]
+    scene = str(body.get("scene") or "")
+    try:
+        have = [l for l in narration.public(code) if not scene or l["scene"] == scene]
+    except Exception as e:
+        return {"error": str(e)}, 400
+    if not have:
+        return {"error": "There is no narration to rewrite. Narration is written with self.say(\"...\")."}, 400
+    if style not in STYLES:
+        return {"error": "Choose shorter, simpler or split."}, 400
+    cfg = load_settings()
+    if cfg["provider"] == "anthropic" and not api_key(cfg):
+        return {"error": "Add your API key in AI settings first."}, 400
+    with _lock:
+        if _job.get("state") == "running":
+            return {"error": "The assistant is busy. Try again when it finishes."}, 409
+    ask = STYLES[style] + (f" The audience is {level}." if level else "")
+    numbered = "\n".join(f"{i + 1}. {l['text']}" for i, l in enumerate(have))
+    _cancel.clear()
+    buf = []
+    try:
+        stream(cfg, REWRITE_SYSTEM, [{"role": "user", "content": f"{ask}\n\nLines:\n{numbered}"}], buf.append, 2400)
+    except Cancelled:
+        return {"error": "Stopped."}, 200
+    except AIError as e:
+        return {"error": str(e)}, 502
+    text = "".join(buf)
+    m = re.search(r"\{.*\}", text, re.S)
+    try:
+        data = json.loads(m.group(0)) if m else {}
+    except ValueError:
+        data = {}
+    if not isinstance(data, dict) or not data:
+        return {"error": "The assistant's answer could not be read. Try again."}, 502
+    count_request()
+    changed, skipped, new = 0, [], code
+    for i, l in enumerate(have):
+        t = data.get(str(i + 1))
+        if not isinstance(t, str) or not t.strip() or " ".join(t.split()) == " ".join(l["text"].split()):
+            continue
+        try:
+            new = narration.set_lines(new, [{"scene": l["scene"], "n": l["n"], "text": t}])
+            changed += 1
+        except Exception:
+            skipped.append(l["line"])                      # a line that lost its [brackets] keeps its old words
+    return {"code": new, "changed": changed, "skipped": skipped, "lines": narration.public(new)}, 200
 
 
 def estimate(body):
@@ -1076,6 +1241,10 @@ def handle(method, path, body):
         return read_image(body)
     if method == "POST" and path == "/api/ai/estimate":
         return estimate(body)
+    if method == "POST" and path == "/api/ai/narration":
+        return rewrite_narration(body)
+    if method == "GET" and path == "/api/ai/usage":
+        return usage_summary(), 200
     if method == "GET" and path == "/api/ai/fixes":
         return fixmemory.stats(), 200
     if method == "GET" and path == "/api/ai/fixes/list":

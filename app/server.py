@@ -27,15 +27,20 @@ import socket
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import addon
 import ai
+import chats
+import history
+import kit
+import narration
 import packages
 import project
+import scenes
 import update
 import voice
 from pathlib import Path
 from urllib.request import urlopen
 
 APP_DIR = Path(__file__).resolve().parent
-VERSION = "1.10.0"
+VERSION = "2.0.0"
 FIRST_PORT = 8765
 PORT_SPAN = 11
 IDLE_EXIT_SECONDS = 120
@@ -83,6 +88,7 @@ CE_PROGRESS = re.compile(r"Animation\s+(\d+):\s*(.*?)\s+(\d+)%\|[^|]*\|\s*(\d+)/
 STEP_CALLS = re.compile(r"self\.(?:play|wait)\(")
 PREVIEW_TYPES = {".mp4", ".webm", ".html", ".png", ".jpg", ".jpeg", ".gif", ".srt", ".vtt", ".pdf", ".wav", ".mp3", ".m4a", ".ogg", ".mov", ".mkv"}   # what the preview may load
 OPEN_URLS = {
+    "https://github.com/mathanmj92/manimo/issues/new?labels=prompt-request&title=Prompt+request",
     "https://mathanmj92.github.io/mathan/",
     "https://manimgx.academa.ai/",
     "https://docs.manim.community/",
@@ -280,7 +286,23 @@ def kill_tree(proc):
 
 
 def friendly_error(lines):
+    """One plain sentence for the top of the error card. Names the thing that went wrong when the log says what it was."""
     text = "\n".join(lines[-80:])
+    m = re.search(r"ModuleNotFoundError: No module named '([\w.]+)'", text)
+    if m:
+        return f"The code imports `{m.group(1).split('.')[0]}`, which is not installed. Open the code check under the editor to install it."
+    m = re.search(r"NameError: name '(\w+)' is not defined(?:\. Did you mean: '(\w+)'\?)?", text)
+    if m:
+        return f"The code uses `{m.group(1)}`, which is not defined. " + (f"Did you mean `{m.group(2)}`?" if m.group(2) else "Check the spelling, or the import line at the top.")
+    m = re.search(r"AttributeError: (?:module |type object )?'?([\w.]+)'? (?:object )?has no attribute '(\w+)'(?:\. Did you mean: '(\w+)'\?)?", text)
+    if m:
+        return f"`{m.group(2)}` does not exist on `{m.group(1)}`." + (f" Did you mean `{m.group(3)}`?" if m.group(3) else " Check the spelling.")
+    m = re.search(r"(?:SyntaxError|IndentationError): (.+)", text)
+    if m:
+        return f"Python cannot read the code: {m.group(1).strip().rstrip('.')}."
+    m = re.search(r"TypeError: (.+)", text)
+    if m:
+        return f"A value has the wrong kind or count: {m.group(1).strip()[:160].rstrip('.')}."
     for needle, msg in HINTS:
         if needle in text:
             return msg
@@ -680,7 +702,7 @@ def open_path(body, must_be_dir):
     if must_be_dir:
         target.mkdir(parents=True, exist_ok=True)
     else:
-        allowed = {o["path"] for o in _job.get("outputs", [])}
+        allowed = {o["path"] for o in _job.get("outputs", [])} | {kit.job().get("file")}         # the last render's files, and the last handout, GIF or share folder
         if str(target) not in allowed:
             return {"error": "That file is not part of the last render."}, 403
     if not target.exists():
@@ -763,6 +785,129 @@ def window_action(body):
     for fn in HOOKS["window"]:
         fn(action)
     return {"ok": True}, 200
+
+
+def scenes_api(body):
+    """Storyboard: the scene list of a file, and the edits to it (reorder, duplicate, delete, rename, add from a template)."""
+    code = str(body.get("code") or "")[:400_000]
+    op = body.get("op") or "info"
+    try:
+        if op == "info":
+            return {"scenes": scenes.info(code) if code.strip() else []}, 200
+        if op == "plan":
+            return scenes.parse_plan(str(body.get("text") or "")[:20000]), 200
+        name, made = str(body.get("name") or ""), None
+        if op == "reorder":
+            new = scenes.reorder(code, [str(n) for n in (body.get("order") or [])])
+        elif op == "duplicate":
+            new, made = scenes.duplicate(code, name)
+        elif op == "delete":
+            new = scenes.delete(code, name)
+        elif op == "rename":
+            made = str(body.get("new_name") or "").strip()
+            new = scenes.rename(code, name, made)
+        elif op == "replace":
+            new = scenes.replace(code, name, str(body.get("take") or "")[:400_000])
+        elif op == "add":
+            new, made = scenes.add_template(code, str(body.get("kind") or ""), (str(body.get("new_name") or "").strip() or None))
+        else:
+            return {"error": "Unknown scene action."}, 400
+    except scenes.SceneError as e:
+        return {"error": str(e)}, 400
+    return {"code": new, "scenes": scenes.info(new), "name": made}, 200
+
+
+def narration_api(body):
+    """Narration studio: the spoken lines of a file, editing them, and the voice and pronunciation settings kept in the file."""
+    code = str(body.get("code") or "")[:400_000]
+    op = body.get("op") or "lines"
+    try:
+        if op == "lines":
+            return {"lines": narration.public(code), "settings": narration.scene_settings(code), "pron": narration.pronunciations(code)}, 200
+        if op == "set":
+            new = narration.set_lines(code, [e for e in (body.get("edits") or []) if isinstance(e, dict)][:200])
+        elif op == "scene":
+            new = narration.set_scene_settings(code, str(body.get("scene") or ""), body.get("voice") or None, body.get("speed"))
+        elif op == "pron":
+            new = narration.set_pronunciations(code, body.get("pairs") or [], body.get("defaults", True) is not False)
+        else:
+            return {"error": "Unknown narration action."}, 400
+    except (narration.NarrationError, scenes.SceneError) as e:
+        return {"error": str(e)}, 400
+    return {"code": new, "lines": narration.public(new), "settings": narration.scene_settings(new), "pron": narration.pronunciations(new)}, 200
+
+
+def scene_preview(body):
+    """Run one scene through ManimGX's own check and return its storyboard picture (the frame at the end of each animation) and what the check found.
+    Used to look at the assistant's takes side by side."""
+    code, scene = str(body.get("code") or "")[:400_000], str(body.get("scene") or "")
+    if pick_engine(code) != "manimgx":
+        return {"error": "Previews work for ManimGX scenes."}, 400
+    if scene not in find_scenes(code):
+        return {"error": f"There is no scene called {scene} in that code."}, 400
+    issues = [i for i in ai.quick_check(code)["issues"] if i["kind"] in ("error", "safety", "name", "package")]
+    if issues:
+        return {"image": None, "error": issues[0]["text"], "problems": [], "seconds": None}, 200
+    work = Path(tempfile.mkdtemp(prefix="manimo-preview-"))
+    try:
+        ai._cancel.clear()
+        rep = ai.verify_manimgx(code, work, [scene])
+        image = None
+        if rep["images"]:
+            png, ff = Path(rep["images"][0]), ffmpeg_exe()
+            small = work / "p.jpg"
+            if ff:
+                subprocess.run([ff, "-y", "-loglevel", "error", "-i", str(png), "-vf", "scale='min(960,iw)':-2", "-q:v", "4", str(small)], capture_output=True, creationflags=NO_WINDOW, timeout=60)
+            src, mime = (small, "image/jpeg") if small.is_file() else (png, "image/png")
+            if src.stat().st_size < 3_000_000:
+                import base64
+                image = f"data:{mime};base64," + base64.b64encode(src.read_bytes()).decode("ascii")
+        s = (rep["scenes"] or [{}])[0]
+        err = rep["error"]["text"] if rep["error"] else None
+        return {"image": image, "error": err, "seconds": s.get("seconds"), "plays": s.get("plays"),
+                "problems": [{"line": p.get("line"), "text": p["text"]} for p in rep["problems"][:8]]}, 200
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
+
+
+def kit_timing(code, scene, voice_id, speed):
+    """What the scene says and when (for the handout's frames); None when it cannot be measured."""
+    data, status = script_lines({"code": code, "scene": scene, "voice": voice_id, "speed": speed})
+    return data if status == 200 and data.get("lines") else None
+
+
+def library_delete(body):
+    """Move videos (and their subtitle files) from the output folder to the Recycle Bin. Nothing outside that folder, nothing but videos."""
+    folder = Path(str(body.get("dir") or default_output_dir())).resolve()
+    paths = [Path(str(p)) for p in (body.get("paths") or [])][:200]
+    todo = []
+    for p in paths:
+        try:
+            r = p.resolve()
+        except OSError:
+            continue
+        if r.parent == folder and r.is_file() and r.suffix.lower() in VIDEO_TYPES and not r.name.startswith("."):
+            todo.append(r)
+            if r.with_suffix(".srt").is_file():
+                todo.append(r.with_suffix(".srt"))
+    if not todo:
+        return {"error": "Nothing to delete."}, 400
+    if os.name != "nt":
+        return {"error": "Moving files to the Recycle Bin works on Windows only."}, 501
+    import ctypes
+    from ctypes import wintypes
+
+    class SHFILEOPSTRUCTW(ctypes.Structure):
+        _fields_ = [("hwnd", wintypes.HWND), ("wFunc", wintypes.UINT), ("pFrom", wintypes.LPCWSTR), ("pTo", wintypes.LPCWSTR), ("fFlags", ctypes.c_ushort),
+                    ("fAnyOperationsAborted", wintypes.BOOL), ("hNameMappings", ctypes.c_void_p), ("lpszProgressTitle", wintypes.LPCWSTR)]
+    op = SHFILEOPSTRUCTW()
+    op.wFunc = 3                                                         # FO_DELETE
+    op.pFrom = "\0".join(str(p) for p in todo) + "\0\0"
+    op.fFlags = 0x0040 | 0x0010 | 0x0004 | 0x0400                        # ALLOWUNDO (Recycle Bin), NOCONFIRMATION, SILENT, NOERRORUI
+    code = ctypes.windll.shell32.SHFileOperationW(ctypes.byref(op))
+    if code != 0 or op.fAnyOperationsAborted:
+        return {"error": "Windows could not move the files to the Recycle Bin."}, 500
+    return {"deleted": len([p for p in todo if p.suffix.lower() in VIDEO_TYPES])}, 200
 
 
 def quit_app():
@@ -874,6 +1019,11 @@ class Handler(BaseHTTPRequestHandler):
             for fn in HOOKS["focus"]:
                 threading.Thread(target=fn, daemon=True).start()
             return self._send({"ok": True})
+        if path in ("/api/kit/job", "/api/brand"):
+            payload, status = kit.handle("GET", path, {})
+            return self._send(payload, status)
+        if path == "/api/scenes/templates":
+            return self._send({"templates": scenes.template_list()})
         if path == "/api/packages":
             return self._send(packages.state())
         if path == "/api/chrome":
@@ -956,6 +1106,23 @@ class Handler(BaseHTTPRequestHandler):
             "/api/quit": quit_app,
             "/api/window": lambda: window_action(body),
             "/api/packages/install": lambda: packages.start(body),
+            "/api/scenes": lambda: scenes_api(body),
+            "/api/narration": lambda: narration_api(body),
+            "/api/library/delete": lambda: library_delete(body),
+            "/api/scene-preview": lambda: scene_preview(body),
+            "/api/chats/save": lambda: chats.save(body),
+            "/api/chats/list": lambda: chats.listing(body),
+            "/api/chats/get": lambda: chats.get(body),
+            "/api/chats/pin": lambda: chats.pin(body),
+            "/api/chats/delete": lambda: chats.delete(body),
+            "/api/kit/pdf": lambda: kit.handle("POST", self.path, body),
+            "/api/kit/pptx": lambda: kit.handle("POST", self.path, body),
+            "/api/kit/gif": lambda: kit.handle("POST", self.path, body),
+            "/api/kit/share": lambda: kit.handle("POST", self.path, body),
+            "/api/brand": lambda: kit.handle("POST", self.path, body),
+            "/api/history/save": lambda: history.save(body),
+            "/api/history/list": lambda: history.listing(body),
+            "/api/history/get": lambda: history.get(body),
         }
         handler = routes.get(self.path)
         if handler is None:
@@ -1089,9 +1256,14 @@ def open_mail(body):
 def voice_preview(body):
     if not voice.available():
         return {"error": "The narration voice is not installed. Reinstall Manimo to add it."}, 409
-    text = " ".join(str(body.get("text") or "").split())[:400] or "Here is how this voice sounds, reading your narration."
+    text = " ".join(re.sub(r"[\[\]]", "", str(body.get("text") or "")).split())[:400] or "Here is how this voice sounds, reading your narration."
+    name, speed = body.get("voice"), body.get("speed")
+    if "code" in body:                                             # a line from a lesson: speak it as the render will (its pronunciations, its scene's voice)
+        name, speed = voice.configure(str(body.get("code") or "")[:400_000], str(body.get("scene") or "") or None, name, speed)
+    else:
+        voice.set_pronunciations([], True)
     try:
-        path = voice.speak(text, body.get("voice"), body.get("speed"))
+        path = voice.speak(text, name, speed)
     except Exception as exc:   # a broken model file or missing runtime should say so, not hang the page
         return {"error": "Could not make the voice: %s" % exc}, 500
     return {"url": f"/files/{serve_dir(path.parent)}/{path.name}"}, 200
@@ -1223,6 +1395,7 @@ def watchdog(server):
 
 
 project.configure(find_scenes=find_scenes, file_entry=file_entry, ffmpeg_exe=ffmpeg_exe, speak=voice.speak, voice_available=voice.available)
+kit.configure(ffmpeg=ffmpeg_exe, timing=kit_timing)
 
 
 def main():

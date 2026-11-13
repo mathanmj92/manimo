@@ -27,7 +27,9 @@ def main():
     import voice
 
     real = voice.available()
-    narrator = voice.KokoroVoice(vname if vname in voice.VOICES else voice.DEFAULT_VOICE, voice._clean(vname, vspeed)[1]) if real else None
+    with open(path, encoding="utf-8") as fh:
+        vname, vspeed = voice.configure(fh.read(), name, vname, vspeed)        # the file's pronunciations, and this scene's own voice and speed
+    narrator = voice.KokoroVoice(vname, vspeed, voice._rules_key) if real else None
     lines = []
 
     def speech(self, text, voice=None):
@@ -41,13 +43,22 @@ def main():
         return sp
 
     m.Scene.speech = speech
+    real_say = m.Scene.say
+
+    def say(self, script, *animations, **kw):
+        own = [float(a.run_time) for a in animations]            # how long the animations were written to take, before say stretches them to the speech
+        out = real_say(self, script, *animations, **kw)
+        if lines:
+            lines[-1]["anim"] = round(max(own), 2) if own else None
+        return out
+    m.Scene.say = say
     voice.add_compat(m)
     spec = importlib.util.spec_from_file_location("userscene", path)
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     scene = getattr(mod, name)()
     scene.construct()
-    print(json.dumps({"lines": lines, "end": round(float(scene.time), 2), "estimated": not real}))
+    print(json.dumps({"lines": lines, "end": round(float(scene.time), 2), "estimated": not real, "voice": vname, "speed": vspeed}))
 
 
 try:

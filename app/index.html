@@ -25,6 +25,7 @@
 <link rel="stylesheet" href="assets/check.css">
 <link rel="stylesheet" href="assets/update.css">
 <link rel="stylesheet" href="assets/layout.css">
+<link rel="stylesheet" href="assets/extras.css">
 </head>
 <body>
 
@@ -79,7 +80,7 @@
   <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></symbol>
   <symbol id="i-present" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M12 16v4M8 20h8"/></symbol>
   <symbol id="i-save" viewBox="0 0 24 24"><path d="M5 4h11l3 3v13H5z"/><path d="M8 4v5h7V4M8 20v-6h8v6"/></symbol>
-<symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM18.5 15l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/></symbol><symbol id="i-send" viewBox="0 0 24 24"><path d="M4 12 20 4l-4 16-4.5-6.5zM11.5 13.5 20 4"/></symbol><symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.4a2.5 2.5 0 1 1 3.4 2.3c-.7.4-1 1-1 1.8M12 17v.01"/></symbol><symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8v.01"/></symbol><symbol id="i-external" viewBox="0 0 24 24"><path d="M14 5h5v5M19 5l-8 8M18 14v4a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h4"/></symbol><symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol><symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 19h14"/></symbol><symbol id="i-wave" viewBox="0 0 120 56"><path d="M4 28c10 0 10-22 20-22s10 44 20 44 10-44 20-44 10 44 20 44 10-22 16-22" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><circle cx="108" cy="28" r="5" fill="var(--accent)" stroke="none"/></symbol></svg>
+<symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM18.5 15l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/></symbol><symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></symbol><symbol id="i-send" viewBox="0 0 24 24"><path d="M4 12 20 4l-4 16-4.5-6.5zM11.5 13.5 20 4"/></symbol><symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.4a2.5 2.5 0 1 1 3.4 2.3c-.7.4-1 1-1 1.8M12 17v.01"/></symbol><symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8v.01"/></symbol><symbol id="i-external" viewBox="0 0 24 24"><path d="M14 5h5v5M19 5l-8 8M18 14v4a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h4"/></symbol><symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol><symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 19h14"/></symbol><symbol id="i-wave" viewBox="0 0 120 56"><path d="M4 28c10 0 10-22 20-22s10 44 20 44 10-44 20-44 10 44 20 44 10-22 16-22" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><circle cx="108" cy="28" r="5" fill="var(--accent)" stroke="none"/></symbol></svg>
 
 <div class="app" id="app">
   <header class="titlebar">
@@ -127,6 +128,7 @@
     <button class="tb-icon tip" id="learnBtn" data-tip="Learn: commands, tips and videos" aria-label="Learn"><svg class="ic"><use href="#i-book"/></svg></button>
     <button class="tb-icon tip" id="aiBtn" data-tip="Ask AI (Ctrl+L)" aria-label="Ask AI" aria-pressed="false"><svg class="ic"><use href="#i-spark"/></svg></button>
     <button class="tb-icon tip tip-right" id="settingsBtn" data-tip="Settings" aria-label="Settings" aria-haspopup="dialog" aria-expanded="false" aria-controls="settings"><svg class="ic"><use href="#i-sliders"/></svg></button>
+    <div class="qs" id="qsStrip" aria-label="Quick start" hidden></div>
   </div>
   <main class="workspace" id="workspace" data-view="code">
     <div class="seg tabs" role="tablist" aria-label="View">
@@ -156,6 +158,7 @@
       <section class="editor" aria-label="Animation code">
         <div class="pane-head">
           <span class="title" id="editorTitle">Code</span>
+          <div class="seg mini" id="viewSeg" role="group" aria-label="Show the code or the storyboard"><button type="button" id="vwCode" aria-pressed="true">Code</button><button type="button" id="vwBoard" aria-pressed="false">Storyboard</button></div>
           <span class="spacer"></span>
           <button class="btn ghost" id="pasteBtn" title="Paste from clipboard"><svg class="ic sm"><use href="#i-clip"/></svg><span class="t">Paste</span></button>
           <button class="btn ghost" id="exampleBtn" title="Load an example"><svg class="ic sm"><use href="#i-shapes"/></svg><span class="t">Example</span></button>
@@ -163,6 +166,7 @@
         </div>
         <div class="code">
           <div class="cm-host" id="cmHost"></div>
+          <div class="board" id="board" aria-label="Storyboard" hidden></div>
           <div class="empty" id="empty">
             <div class="empty-inner">
               <svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="9" fill="var(--accent)"/><path d="M5.5 20.5c3.2 0 3.2-9 6.5-9s3.2 9 6.5 9 3.2-9 6.5-9" fill="none" stroke="var(--on-accent)" stroke-width="2.4" stroke-linecap="round"/><circle cx="25.5" cy="11.5" r="2.2" fill="var(--on-accent)"/></svg>
@@ -199,7 +203,7 @@
         <span class="spacer"></span>
         <span id="previewBtns">
           <button class="btn ghost" id="editVidBtn" title="Trim, join, add music or your voice in the video editor" hidden><svg class="ic sm"><use href="#i-scissors"/></svg><span class="t">Edit video</span></button>
-          <button class="btn ghost" id="scriptBtn" title="List what the scene says, with times"><svg class="ic sm"><use href="#i-wave"/></svg><span class="t">Script</span></button>
+          <button class="btn ghost" id="scriptBtn" title="Narration: edit what is said, choose voices, fix pronunciations"><svg class="ic sm"><use href="#i-wave"/></svg><span class="t">Narration</span></button>
           <button class="btn ghost" id="recToggle" title="Record your voice (and camera) over this video" hidden><svg class="ic sm"><use href="#i-wave"/></svg><span class="t">Narrate</span></button>
           <button class="btn ghost" id="previewOpen" title="Open in your video player" hidden><svg class="ic sm"><use href="#i-external"/></svg><span class="t">Open</span></button>
           <button class="btn ghost" id="previewFolder" title="Show in the output folder" hidden><svg class="ic sm"><use href="#i-folder"/></svg><span class="t">Folder</span></button>
@@ -233,6 +237,7 @@
 
     <aside class="side side-ai" id="aiSide" aria-label="AI assistant" hidden>
       <div class="side-head"><svg class="ic sm"><use href="#i-spark"/></svg><span>Assistant</span><span class="spacer"></span>
+        <button class="icon-btn sm tip" id="aiHistory" data-tip="Past conversations" aria-label="Past conversations"><svg class="ic"><use href="#i-clock"/></svg></button>
         <button class="icon-btn sm tip" id="aiNew" data-tip="New chat" aria-label="Start a new conversation"><svg class="ic"><use href="#i-plus"/></svg></button>
         <button class="icon-btn sm tip" id="aiSettingsBtn" data-tip="AI settings" aria-label="AI settings"><svg class="ic"><use href="#i-sliders"/></svg></button>
         <button class="icon-btn sm tip tip-right" id="aiClose" data-tip="Collapse" aria-label="Collapse the assistant"><svg class="ic"><use href="#i-panel-r"/></svg></button></div>
@@ -305,6 +310,7 @@
     <label class="chip"><span class="k">Shape</span><select id="veShape" aria-label="Video shape"><option value="auto">Same as my scenes</option><option value="16:9">Wide 16:9</option><option value="9:16">Tall 9:16</option><option value="1:1">Square 1:1</option><option value="4:3">Classic 4:3</option><option value="3:4">Portrait 3:4</option></select></label>
     <label class="chip"><span class="k">Quality</span><select id="vePreset" aria-label="Export quality"><option value="high">1080p</option><option value="small">720p</option><option value="draft">480p draft</option><option value="share">Small file (720p)</option><option value="audio">Audio only</option></select></label>
     <label class="chip chk" title="Put the words of your scenes on the picture"><input type="checkbox" id="veCaps"><span>Captions</span></label>
+    <button class="ve-ib" id="capStyleBtn" title="How the captions look" aria-label="Caption style" aria-haspopup="dialog"><span aria-hidden="true" style="font-weight:700;font-size:13px">Aa</span></button>
     <button class="btn primary" id="veExport"><svg class="ic sm"><use href="#i-export"/></svg>Export video</button>
     <button class="icon-btn" id="veClose" aria-label="Close Compose" title="Close (Esc)"><svg class="ic"><use href="#i-x"/></svg></button>
   </header>
@@ -552,6 +558,9 @@
 <div class="dlg-head"><h2 id="libTitle">My videos</h2><button class="icon-btn" data-close aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button></div>
 <div class="dlg-body">
   <div class="lib-bar"><span class="lib-dir" id="libDir"></span><button class="btn sm ghost" id="libFolder"><svg class="ic sm"><use href="#i-folder"/></svg>Open folder</button></div>
+  <div class="lib-tools"><input type="search" class="input sm" id="libSearch" placeholder="Search your videos" aria-label="Search your videos" autocomplete="off">
+    <select class="input sm" id="libSort" aria-label="Sort videos"><option value="new">Newest first</option><option value="old">Oldest first</option><option value="name">Name A to Z</option><option value="big">Largest first</option></select>
+    <span class="spacer"></span><span class="lib-sel" id="libSelBar" hidden><span id="libSelCount"></span><button class="btn sm danger" id="libDelete" type="button">Move to Recycle Bin</button><button class="btn sm ghost" id="libClear" type="button">Clear</button></span></div>
   <p class="lib-msg" id="libMsg" role="status"></p>
   <ul class="lib-grid" id="libGrid"></ul>
 </div>
@@ -650,6 +659,128 @@
 </dialog>
 
 <!-- Script export -->
+<dialog class="dlg wide chats" id="chatsDlg" aria-labelledby="chatsTitle">
+  <div class="dlg-head"><h2 id="chatsTitle">Past conversations</h2><button class="icon-btn" data-close aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button></div>
+  <div class="dlg-body">
+    <div class="ch-bar"><input type="search" class="input" id="chatsSearch" placeholder="Search your conversations" aria-label="Search your conversations" autocomplete="off"><button class="btn sm ghost" id="chatsToggle" type="button">Show every lesson</button></div>
+    <p class="help" id="chatsScope" style="margin:6px 0 8px"></p>
+    <ul class="ch-list" id="chatsList"></ul>
+    <p class="help">Conversations are saved on this PC only, after each reply. Pin the ones you want to keep: the oldest unpinned ones are cleared when a lesson has more than 40.</p>
+  </div>
+  <div class="dlg-foot"><span class="spacer"></span><button class="btn primary" data-close>Close</button></div>
+</dialog>
+<dialog class="dlg wide takes" id="takeDlg" aria-labelledby="takeTitle">
+  <div class="dlg-head"><h2 id="takeTitle">Compare two takes</h2><button class="icon-btn" data-close aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button></div>
+  <div class="dlg-body">
+    <div id="takeAskRow">
+      <p class="help">The assistant writes this scene twice: once close to what you have, and once in a clearly different way. You see both next to the current one, and keep the one you like. This asks the assistant twice, so it costs about twice one edit.</p>
+      <label class="pc-l">What should be different?<textarea class="input" id="takeAsk" rows="2"></textarea></label>
+      <div class="dlg-row"><button class="btn primary" id="takeGo" type="button">Make two takes</button></div>
+    </div>
+    <p class="help" id="takeStatus" role="status"></p>
+    <div class="tk-cols" id="takeCols"></div>
+  </div>
+  <div class="dlg-foot"><span class="spacer"></span><button class="btn primary" data-close>Close</button></div>
+</dialog>
+<dialog class="dlg wide kit" id="kitDlg" aria-labelledby="kitHead">
+  <div class="dlg-head"><h2 id="kitHead">Export lesson</h2><button class="icon-btn" data-close aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button></div>
+  <div class="dlg-body">
+    <div class="seg mini kit-tabs" role="group" aria-label="What to make"><button type="button" data-kt="pdf" aria-pressed="true">Lesson PDF</button><button type="button" data-kt="pptx" aria-pressed="false">PowerPoint</button><button type="button" data-kt="gif" aria-pressed="false">GIF</button><button type="button" data-kt="share" aria-pressed="false">Share folder</button><button type="button" data-kt="brand" aria-pressed="false">My brand</button></div>
+    <div class="kit-shared" id="kitShared"><label class="pc-l">Title<input class="input" id="kitTitle" type="text" maxlength="120"></label><label class="pc-l" data-kp="pdf pptx">Who it is for<input class="input" id="kitAudience" type="text" maxlength="120" placeholder="e.g. Class 11 physics"></label></div>
+    <p class="help bad" id="kitNoScenes" hidden>There are no scenes in the code yet.</p>
+
+    <div data-kp="pdf pptx">
+      <p class="help" data-kq="pdf">A handout to print or share: the problem and its solution, the narration as numbered steps, and (optional) a picture from the video for each step. Every page says it was made with Manimo in its footer.</p>
+      <p class="help" data-kq="pptx" hidden>Slides to present: a title, the problem with its figure, the solution, then a slide for each spoken line with its picture. The narration is in the speaker notes, and every slide says it was made with Manimo in its footer.</p>
+      <label class="pc-l">Problem<textarea class="input" id="kitProblem" rows="3" placeholder="The problem the lesson solves (optional)"></textarea></label>
+      <label class="pc-l">Solution<textarea class="input" id="kitSolution" rows="5" placeholder="Given: ... Find: ... Method: ... Steps: 1. ... Answer: ... Check: ..."></textarea></label>
+      <div class="dlg-row"><button class="btn sm" id="kitUseSolved" type="button">Use the assistant&rsquo;s solved problem</button></div>
+      <div class="kit-opts">
+        <label class="pc-l">Pictures from the videos<select class="input" id="kitFrames"><option value="lines">One for each spoken line (recommended)</option><option value="few">A few for each scene</option><option value="none">None, text only</option></select></label>
+        <label class="chk"><input type="checkbox" id="kitLight" checked> Light background for printing</label>
+        <label class="chk"><input type="checkbox" id="kitFigure" checked> Show a figure from the first scene beside the problem</label>
+        <label class="pc-l" data-kq="pdf">Picture size<select class="input" id="kitSize"><option value="large">Large: one picture across the page (easiest to read)</option><option value="compact">Compact: picture beside its text (fewer pages)</option></select></label>
+        <label class="chk" data-kq="pdf"><input type="checkbox" id="kitLarge"> Large print (bigger text for printing)</label>
+        <label class="pc-l" data-kq="pptx" hidden>Slides<select class="input" id="kitSlides"><option value="lines">One slide for each spoken line (the diagram builds up)</option><option value="scene">One slide for each scene (its finished picture)</option></select></label>
+      </div>
+      <fieldset class="kit-list"><legend>Scenes to include</legend><div id="kitPdfScenes"></div></fieldset>
+    </div>
+
+    <div data-kp="gif" hidden>
+      <p class="help">A short looping GIF of one rendered scene, for slides and chat.</p>
+      <div class="kit-opts">
+        <label class="pc-l">Scene<select class="input" id="kitGifScene"></select></label>
+        <label class="pc-l">Start (seconds)<input class="input" id="kitGifStart" type="number" min="0" step="0.5" value="0"></label>
+        <label class="pc-l">Length (seconds, up to 30)<input class="input" id="kitGifSecs" type="number" min="1" max="30" step="1" value="8"></label>
+        <label class="pc-l">Width<select class="input" id="kitGifWidth"><option value="320">Small (320)</option><option value="480" selected>Medium (480)</option><option value="640">Large (640)</option></select></label>
+      </div>
+    </div>
+
+    <div data-kp="share" hidden>
+      <p class="help">One folder to post from: the ticked scenes joined into one video, a cover picture, the title, a description and chapter times.</p>
+      <label class="pc-l">Description<textarea class="input" id="kitDesc" rows="3" placeholder="A sentence or two about the lesson (optional)"></textarea></label>
+      <fieldset class="kit-list"><legend>Scenes, in order</legend><div id="kitShareScenes"></div></fieldset>
+    </div>
+
+    <div data-kp="brand" hidden>
+      <p class="help">Shown at the top of your handouts. The Manimo brand page is always the last page.</p>
+      <div class="kit-opts">
+        <label class="pc-l">Your name or school<input class="input" id="kitBrandName" type="text" maxlength="80"></label>
+        <label class="pc-l">A line under it<input class="input" id="kitBrandTag" type="text" maxlength="120"></label>
+        <label class="pc-l">Accent colour<input class="input" id="kitBrandColor" type="color" value="#1fa5bd" style="height:38px;padding:3px"></label>
+      </div>
+      <div class="kit-logo"><div id="kitLogoPrev"></div><label class="btn sm" style="cursor:pointer">Choose a logo<input id="kitLogoFile" type="file" accept="image/png,image/jpeg,image/webp" hidden></label><button class="btn sm ghost" id="kitLogoClear" type="button">Remove logo</button><button class="btn sm primary" id="kitBrandSave" type="button">Save brand</button></div>
+    </div>
+
+    <div class="kit-prog" id="kitProgress" hidden><span id="kitProgText" role="status"></span><div class="bar"><i id="kitBar"></i></div></div>
+    <div id="kitResult"></div>
+    <p class="help" id="kitMsg" role="status"></p>
+  </div>
+  <div class="dlg-foot"><span class="spacer"></span><button class="btn ghost" data-close>Close</button><button class="btn primary" id="kitGo" type="button">Make the PDF</button></div>
+</dialog>
+<dialog class="dlg cap" id="capDlg" aria-labelledby="capTitle">
+  <div class="dlg-head"><h2 id="capTitle">Caption style</h2><button class="icon-btn" data-close aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button></div>
+  <div class="dlg-body">
+    <div class="cap-prev"><img id="capImg" alt="Sample of the caption style on a frame of your video"><p class="help" id="capMsg" role="status"></p></div>
+    <div class="cap-opts">
+      <label class="pc-l">Size<select class="input" id="capSize"><option value="small">Small</option><option value="medium" selected>Medium</option><option value="large">Large</option></select></label>
+      <label class="pc-l">Position<select class="input" id="capPos"><option value="bottom" selected>Bottom</option><option value="middle">Middle</option><option value="top">Top</option></select></label>
+      <label class="pc-l">Text colour<select class="input" id="capColor"><option value="white" selected>White</option><option value="yellow">Yellow</option></select></label>
+      <label class="chk" style="align-self:end"><input type="checkbox" id="capBox"> Dark box behind the words</label>
+    </div>
+    <p class="help">Turn on <b>Captions</b> in Compose to put them on the picture. A separate <code>.srt</code> subtitle file is always saved next to the exported video, so viewers can also switch subtitles on or off in a player.</p>
+  </div>
+  <div class="dlg-foot"><span class="spacer"></span><button class="btn primary" data-close>Done</button></div>
+</dialog>
+<dialog class="dlg wide narr" id="narrDlg" aria-labelledby="narrTitle">
+  <div class="dlg-head"><h2 id="narrTitle">Narration</h2><button class="icon-btn" data-close aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button></div>
+  <div class="dlg-body">
+    <div class="nr-top">
+      <label class="pc-l">Voice for the lesson<select class="input" id="nrVoice"></select></label>
+      <label class="pc-l">Speed <output id="nrSpeedOut">1.0x</output><input type="range" id="nrSpeed" min="0.7" max="1.4" step="0.05" value="1"></label>
+      <button class="btn" id="nrSample" type="button">Hear a sample</button>
+    </div>
+    <div class="nr-ai" role="group" aria-label="Rewrite the narration with the assistant">
+      <span class="help" style="margin:0">Rewrite with the assistant (only the spoken words are sent):</span>
+      <select class="input sm" id="nrLevel" aria-label="Audience"><option value="">Any audience</option><option value="students in class 6 to 8">Class 6 to 8</option><option value="students in class 9 and 10">Class 9 and 10</option><option value="students in class 11 and 12">Class 11 and 12</option><option value="first-year college students">First-year college</option></select>
+      <button class="btn sm" data-ai="shorter" type="button">Make shorter</button>
+      <button class="btn sm" data-ai="simpler" type="button">Make simpler</button>
+      <button class="btn sm" data-ai="split" type="button">Split long lines</button>
+    </div>
+    <p class="help" id="nrMsg" role="status"></p>
+    <div class="seg mini" id="nrScenes" role="group" aria-label="Scene"></div>
+    <div class="nr-scene" id="nrSceneBar"></div>
+    <ol class="nr-rows" id="nrRows"></ol>
+    <details class="nr-pron" id="nrPron"><summary>Pronunciations <span class="help" id="nrPronCount"></span></summary>
+      <p class="help">Say a written word differently, only when it is spoken. The text on screen does not change. Saved in this lesson's file as <code># say: written = spoken</code> lines.</p>
+      <label class="chk"><input type="checkbox" id="nrDefaults" checked> Also use the built-in list (<span id="nrBuiltinCount"></span> entries: Greek letters, units, signs, sin, cos, tan)</label>
+      <ul class="nr-pairs" id="nrPairs"></ul>
+      <div class="dlg-row"><button class="btn sm" id="nrPairAdd" type="button">Add a pronunciation</button><button class="btn sm primary" id="nrPairSave" type="button">Save pronunciations</button></div>
+    </details>
+    <audio id="nrAudio" hidden></audio>
+  </div>
+  <div class="dlg-foot"><button class="btn ghost" id="nrExport" type="button">Export the script…</button><span class="spacer"></span><button class="btn primary" data-close>Done</button></div>
+</dialog>
 <dialog class="dlg" id="scriptDlg" aria-labelledby="scriptDlgTitle">
   <div class="dlg-head"><h2 id="scriptDlgTitle">Narration script</h2><button class="icon-btn" data-close aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button></div>
   <div class="dlg-body">
@@ -671,6 +802,32 @@
 </dialog>
 
 <!-- AI settings -->
+<dialog class="dlg pal" id="palDlg" aria-label="Find a command">
+  <input class="input pal-input" id="palInput" type="text" role="combobox" aria-expanded="true" aria-controls="palList" aria-autocomplete="list" autocomplete="off" spellcheck="false" placeholder="Type to find a command, for example: layout, save, voice">
+  <ul class="pal-list" id="palList" role="listbox" aria-label="Commands"></ul>
+  <p class="pal-foot"><span id="palCount" role="status"></span><span><kbd>↑</kbd> <kbd>↓</kbd> to move · <kbd>Enter</kbd> to run · <kbd>Esc</kbd> to close</span></p>
+</dialog>
+<dialog class="dlg wide" id="planDlg" aria-labelledby="pcHead">
+  <div class="dlg-head"><h2 id="pcHead">Lesson plan</h2><button class="icon-btn" data-close aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button></div>
+  <div class="dlg-body">
+    <p class="help" style="margin:0 0 10px">Change anything before any code is written. Each card becomes one scene. It is cheaper to fix a plan than to fix code.</p>
+    <div class="pc-top"><label class="pc-l">Title<input class="input" id="pcTitle" type="text"></label><label class="pc-l">Who it is for<input class="input" id="pcFor" type="text"></label><label class="pc-l">Colours and symbols<input class="input" id="pcLook" type="text"></label></div>
+    <ol class="pc-list" id="pcList"></ol>
+    <div class="dlg-row"><button class="btn sm" id="pcAdd" type="button">Add a scene</button><span class="help" id="pcCount" role="status" style="align-self:center"></span></div>
+  </div>
+  <div class="dlg-foot"><button class="btn ghost" id="pcCancel" type="button">Cancel</button><span class="spacer"></span><button class="btn" id="pcAll" type="button" title="One request for the whole file">Write all at once</button><button class="btn primary" id="pcSeries" type="button" title="One request per scene: a problem redoes one scene, not the file">Write one scene at a time</button></div>
+</dialog>
+<dialog class="dlg wide hist" id="histDlg" aria-labelledby="histTitle">
+  <div class="dlg-head"><h2 id="histTitle">Version history</h2><button class="icon-btn" data-close aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button></div>
+  <div class="dlg-body">
+    <p class="help" style="margin:0 0 10px">Earlier versions of <b id="histFile"></b>, kept on this PC. Manimo saves one when you pause typing and before every render (the newest 30).</p>
+    <div class="hist-cols">
+      <ul class="hist-list" id="histList" aria-label="Versions"></ul>
+      <div class="hist-view"><p class="help" id="histNote" role="status"></p><pre class="hist-diff" id="histDiff" tabindex="0" aria-label="What changed"></pre></div>
+    </div>
+  </div>
+  <div class="dlg-foot"><span class="spacer"></span><button class="btn ghost" data-close>Close</button><button class="btn primary" id="histRestore" disabled>Restore this version</button></div>
+</dialog>
 <dialog class="dlg wide" id="fixDlg" aria-labelledby="fixTitle">
   <div class="dlg-head"><h2 id="fixTitle">Saved fixes</h2><button class="icon-btn" data-close aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button></div>
   <div class="dlg-body">
@@ -711,6 +868,7 @@
     <div class="field"><label class="chk"><input type="checkbox" id="aiVisual"> Let the assistant look at a picture of its own scene to catch problems (Claude only; uses more of your quota)</label></div>
     <div class="field"><label class="chk"><input type="checkbox" id="fixMem"> Remember fixes that worked, and reuse them for similar problems</label>
       <p class="help"><span id="fixMemCount">No fixes saved yet.</span> Saved on this PC only. <button class="linkbtn" id="fixManage" type="button">See and manage</button> <button class="linkbtn" id="fixForget" type="button">Forget all</button></p></div>
+    <p class="help" id="aiUsage"></p>
     <p class="help" id="aiTestMsg" role="status"></p>
   </div>
   <div class="dlg-foot"><button class="btn ghost" id="aiClearKey">Remove saved key</button><span class="spacer"></span><button class="btn" id="aiTest">Save &amp; test</button><button class="btn primary" id="aiSave">Save</button></div>
@@ -734,5 +892,15 @@
 <script src="assets/update.js"></script>
 <script src="assets/layout.js"></script>
 <script src="assets/winctl.js"></script>
+<script src="assets/palette.js"></script>
+<script src="assets/board.js"></script>
+<script src="assets/plancards.js"></script>
+<script src="assets/narr.js"></script>
+<script src="assets/captions.js"></script>
+<script src="assets/kit.js"></script>
+<script src="assets/takes.js"></script>
+<script src="assets/chats.js"></script>
+<script src="assets/history.js"></script>
+<script src="assets/quickstart.js"></script>
 </body>
 </html>

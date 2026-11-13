@@ -85,7 +85,7 @@ $('themeBtn').addEventListener('click', function () {
 /* ---------------------------------------------------------------- editor (CodeMirror 6) */
 var cm = MGXEditor.create({
   parent: $('cmHost'),
-  onChange: function () { cm.clearMarks(); markDirty(); afterEdit(); },
+  onChange: function () { renderMarks = {}; cm.clearMarks(); markDirty(); afterEdit(); },
   onCursor: function (l, c) { $('pos').textContent = 'Ln ' + l + ', Col ' + c; },
   onSave: function () { saveFile(false); },
   onRun: function () { $('startBtn').click(); },
@@ -159,6 +159,9 @@ function afterEdit() {
   $('empty').hidden = v.length > 0;
   updateStatus(); paintBeats();
   if (window.MGXCheck) window.MGXCheck.edited();
+  if (window.MGXHistory) window.MGXHistory.edited();
+  if (window.MGXBoard) window.MGXBoard.changed();
+  if (window.MGXQuick) window.MGXQuick.changed();
   store('mgx-code', v);
   if (window.MGXProject) window.MGXProject.changed();
 }
@@ -550,7 +553,7 @@ $('voicePlay').addEventListener('click', function () {
   }).catch(function (e) { $('voiceMsg').textContent = e.message || 'Could not play the voice.'; }).then(function () { b.disabled = false; });
 });
 function scriptStamp(t) { return Math.floor(t / 60) + ':' + ('0' + Math.floor(t % 60)).slice(-2) + '.' + Math.floor((t * 10) % 10); }
-$('scriptBtn').addEventListener('click', function () {
+function openScriptExport() {
   if (DEMO) { toast('Open Manimo from its shortcut to export a script'); return; }
   var dlg = $('scriptDlg'), scene = selScene === ALL ? ((validity().scenes || [])[0] || '') : selScene;
   $('scriptList').innerHTML = ''; $('scriptMsg').textContent = ''; $('scriptNote').textContent = 'Reading the scene…';
@@ -562,7 +565,8 @@ $('scriptBtn').addEventListener('click', function () {
     $('scriptList').innerHTML = SCRIPT.lines.map(function (l) { return '<li><time>' + scriptStamp(l.t) + '</time><span>' + esc(l.text) + '</span></li>'; }).join('');
     dlg.querySelectorAll('[data-fmt],#scriptCopy').forEach(function (b) { b.disabled = !SCRIPT.lines.length; });
   }).catch(function (e) { SCRIPT.lines = []; $('scriptNote').textContent = e.message; dlg.querySelectorAll('[data-fmt],#scriptCopy').forEach(function (b) { b.disabled = true; }); });
-});
+}
+$('scriptBtn').addEventListener('click', function () { if (window.MGXNarr && !DEMO) window.MGXNarr.open(); else openScriptExport(); });
 $('scriptCopy').addEventListener('click', function () {
   var t = SCRIPT.lines.map(function (l) { return scriptStamp(l.t) + '  ' + l.text; }).join('\n');
   (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(function () { $('scriptMsg').textContent = 'Copied.'; }, function () { $('scriptMsg').textContent = 'Could not copy. Save it instead.'; });
@@ -700,12 +704,14 @@ function logHTML(text) {
   return '<button class="disc" id="logToggle" aria-expanded="' + logOpen + '"><svg class="ic sm"><use href="#i-chev"/></svg>' + (logOpen ? 'Hide details' : 'Show details') + '</button>' +
     '<pre class="log" id="logBox"' + (logOpen ? '' : ' hidden') + '>' + esc(text || 'Waiting for output\u2026') + '</pre>';
 }
+var renderMarks = {}, checkMarks = {};      // gutter marks from the last render, and from the code check; both show together
+function paintMarks() { var m = Object.assign({}, checkMarks); Object.keys(renderMarks).forEach(function (k) { if (m[k] !== 'err') m[k] = renderMarks[k]; }); cm.setMarks(m); }
 function applyMarks() {
   var m = {};
   (R.warnings || []).forEach(function (x) { m[x.line] = 'warn'; });
   if (R.error && R.error.line) m[R.error.line] = 'err';
   (R.failed || []).forEach(function (f) { if (f.error && f.error.line) m[f.error.line] = 'err'; });
-  cm.setMarks(m);
+  renderMarks = m; paintMarks();
 }
 function dockState() { return INS.state === 'running' ? 'installing' : R.state; }
 
@@ -762,10 +768,11 @@ function paintDock() {
   } else if (st === 'error') {
     var eline = R.error && R.error.line;
     dock.innerHTML = '<div class="dock-row"><span class="badge bad"><svg class="ic"><use href="#i-alert"/></svg></span><div class="dock-title">' + esc((R.error && R.error.title) || 'The render could not finish.') + '</div>' +
-      '<div class="dock-actions"><button class="btn primary sm" id="aRetry">Try again</button>' + (eline ? '<button class="btn sm" data-line="' + eline + '">Show line ' + eline + '</button>' : '') +
+      '<div class="dock-actions"><button class="btn primary sm" id="aFixAI"><svg class="ic sm"><use href="#i-spark"/></svg>Fix with the assistant</button><button class="btn sm" id="aRetry">Try again</button>' + (eline ? '<button class="btn sm" data-line="' + eline + '">Show line ' + eline + '</button>' : '') +
       '<button class="btn ghost sm" id="aCopy"><svg class="ic sm"><use href="#i-copy"/></svg>Copy details</button><button class="icon-btn" id="aClose" aria-label="Dismiss"><svg class="ic sm"><use href="#i-x"/></svg></button></div></div>' + barHTML(100, false) +
       '<div class="dock-body">' + notesHTML() + logHTML((R.error && R.error.detail) || R.log.join('\n')) + '</div>';
     $('aRetry').onclick = function () { startRender(R.kind); }; $('aClose').onclick = dismissDock;
+    $('aFixAI').onclick = function () { rightTab('assistant'); if (AI.cfg && AI.cfg.configured) sendAI({ mode: 'fix' }); else openAISettings(); };
     $('aCopy').onclick = function () { var t = (R.error && R.error.detail) || R.log.join('\n'); (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(function () { toast('Details copied'); }, function () { toast('Could not copy. Select the text manually.'); }); };
     say('Render failed. ' + ((R.error && R.error.title) || ''));
   } else if (st === 'cancelled') {
@@ -831,7 +838,9 @@ function startRender(kind) {
   R = { state: 'running', kind: kind, engine: chk.engine, pct: 0, scene: targets[0], current: 0, res: QUALITY[S.quality][1], fps: S.fps === 'auto' ? null : S.fps, videoSec: null,
         elapsed: 0, eta: null, log: [], outputs: [], warnings: [], failed: [], error: null, scenes: chk.scenes,
         items: targets.map(function (s) { return { scene: s, state: 'queued', percent: 0 }; }) };
-  cm.clearMarks(); built = ''; lastSaid = -1; confirming = false;
+  renderMarks = {}; cm.clearMarks(); built = ''; lastSaid = -1; confirming = false;
+  if (window.MGXHistory) window.MGXHistory.snap('Before render');
+  if (window.MGXBoard) window.MGXBoard.progress(R);
   paintStart(); paintDock(); say('Render started');
   if (DEMO) { simulate(); return; }
   var inProject = !!(window.MGXProject && window.MGXProject.active());
@@ -845,6 +854,8 @@ function finishRender() {
   var vids = R.outputs.filter(function (o) { return o.kind !== 'slides'; }), slides = R.outputs.filter(function (o) { return o.kind === 'slides'; });
   if (window.MGXProject) window.MGXProject.refresh();
   if (R.state === 'done' && R.outputs.length) {
+    if (window.MGXQuick) window.MGXQuick.rendered();
+    if (window.MGXBoard) window.MGXBoard.rendered(R);
     addHistory(R.outputs);
     var list = slides.concat(vids); setPreview(list, 0); if (!AI.busy) rightTab('preview'); if (narrow.matches) setView('preview');
   }
@@ -859,6 +870,7 @@ function poll() {
       if (j.state === 'done' || j.state === 'error' || j.state === 'cancelled') {
         clearInterval(poller); R.state = j.state; if (j.state === 'done') R.pct = 100; built = ''; finishRender();
       }
+      if (window.MGXBoard) window.MGXBoard.progress(R);
       paintDock(); paintStart();
     }).catch(function () { /* transient; the next tick retries */ });
   }, 450);
@@ -930,7 +942,7 @@ function mi(label, key, run, opts) { return Object.assign({ label: label, key: k
 function setLayout(k) { S.layout = k; persistSettings(); syncSettingsUI(); toast(LAYOUTS[k][0] + ' layout'); }
 function menuItems(id) {
   if (id === 'file') {
-    var items = (window.MGXProject ? window.MGXProject.menu() : []).concat([mi('New file', 'Ctrl+N', newFile), mi('Open\u2026', 'Ctrl+O', openFile), mi('Save', 'Ctrl+S', function () { saveFile(false); }), mi('Save as\u2026', 'Ctrl+Shift+S', function () { saveFile(true); }), { sep: true }, mi('My videos\u2026', '', function () { if (window.MGXLibrary) window.MGXLibrary.open(); }), { sep: true }, { head: 'Examples' }]);
+    var items = (window.MGXProject ? window.MGXProject.menu() : []).concat([mi('New file', 'Ctrl+N', newFile), mi('Open\u2026', 'Ctrl+O', openFile), mi('Save', 'Ctrl+S', function () { saveFile(false); }), mi('Save as\u2026', 'Ctrl+Shift+S', function () { saveFile(true); }), { sep: true }, mi('My videos\u2026', '', function () { if (window.MGXLibrary) window.MGXLibrary.open(); }), mi('Export lesson\u2026', '', function () { if (window.MGXKit) window.MGXKit.open(); }), { sep: true }, { head: 'Examples' }]);
     EXAMPLES.forEach(function (ex, i) { items.push(mi(ex.name, '', function () { loadExample(i); })); });
     items.push({ sep: true }, mi('Exit', 'Alt+F4', exitApp));
     return items;
@@ -947,7 +959,8 @@ function menuItems(id) {
     mi('Undo', 'Ctrl+Z', function () { cm.run('undo'); }), mi('Redo', 'Ctrl+Y', function () { cm.run('redo'); }), { sep: true },
     mi('Cut', 'Ctrl+X', function () { cm.run('cut'); }), mi('Copy', 'Ctrl+C', function () { cm.run('copy'); }), mi('Paste', 'Ctrl+V', function () { cm.run('paste'); }), { sep: true },
     mi('Select all', 'Ctrl+A', function () { cm.run('selectAll'); }), { sep: true },
-    mi('Find\u2026', 'Ctrl+F', function () { cm.run('find'); }), mi('Find and replace\u2026', 'Ctrl+H', function () { cm.run('find'); })
+    mi('Find\u2026', 'Ctrl+F', function () { cm.run('find'); }), mi('Find and replace\u2026', 'Ctrl+H', function () { cm.run('find'); }), { sep: true },
+    mi('Version history\u2026', '', function () { if (window.MGXHistory) window.MGXHistory.open(); })
   ];
   if (id === 'session') {
     var s = [mi('New session', '', newSession), mi('Save session\u2026', '', saveSession), mi('Open session\u2026', '', openSession), { sep: true }, { head: 'Recent renders' }];
@@ -958,9 +971,9 @@ function menuItems(id) {
     return s;
   }
   return [
-    mi('Ask the AI assistant', 'Ctrl+L', function () { rightTab('assistant'); }), mi('AI settings\u2026', '', openAISettings), { sep: true },
+    mi('Find a command\u2026', 'Ctrl+K', function () { if (window.MGXPalette) window.MGXPalette.open(); }), mi('Ask the AI assistant', 'Ctrl+L', function () { rightTab('assistant'); }), mi('AI settings\u2026', '', openAISettings), { sep: true },
     mi('How to use Manimo', 'F1', function () { openDialog('helpDlg'); }), mi('Keyboard shortcuts', '', function () { openDialog('helpDlg'); var l = $('shortcutList'); if (l) l.scrollIntoView({ block: 'start' }); }),
-    mi('Learn and commands', '', function () { openDialog('learnDlg'); }), mi('Lesson prompt\u2026', '', openPrompt),
+    mi('Show the quick start', '', function () { if (window.MGXQuick) window.MGXQuick.show(); }), mi('Learn and commands', '', function () { openDialog('learnDlg'); }), mi('Lesson prompt\u2026', '', openPrompt),
     mi('Report a problem\u2026', '', openReport), mi('Check my setup', '', openSetup), mi('Check for updates\u2026', '', function () { if (window.MGXUpdate) window.MGXUpdate.check(); }), { sep: true },
     mi('ManimGX documentation', '', function () { openUrl('https://manimgx.academa.ai/'); }), mi('Manim documentation', '', function () { openUrl('https://docs.manim.community/'); }), { sep: true },
     mi('About Manimo', '', function () { openDialog('aboutDlg'); })
@@ -1127,7 +1140,7 @@ $('reportMail').addEventListener('click', function () {
 $('reportAuthor').addEventListener('click', function () { openUrl('https://mathanmj92.github.io/mathan/'); });
 $('setupCopy').addEventListener('click', function () { (navigator.clipboard ? navigator.clipboard.writeText($('setupText').textContent) : Promise.reject()).then(function () { toast('Copied'); }, function () { toast('Could not copy. Select the text instead.'); }); });
 (function shortcuts() {
-  var rows = [['Ctrl + Enter', 'Start rendering'], ['Ctrl + S', 'Save the file'], ['Ctrl + Shift + S', 'Save as\u2026'], ['Ctrl + O', 'Open a file'], ['Ctrl + N', 'New file'], ['Ctrl + F', 'Find in the code'], ['Ctrl + H', 'Find and replace'], ['Ctrl + Z / Ctrl + Y', 'Undo / redo'], ['Ctrl + Space', 'Show suggestions while typing'], ['Ctrl + L', 'Open the AI assistant'], ['F1', 'Open this help'], ['Esc', 'Close a menu or panel']];
+  var rows = [['Ctrl + K', 'Find any command'], ['?', 'Show these shortcuts'], ['Ctrl + Enter', 'Start rendering'], ['Ctrl + S', 'Save the file'], ['Ctrl + Shift + S', 'Save as\u2026'], ['Ctrl + O', 'Open a file'], ['Ctrl + N', 'New file'], ['Ctrl + F', 'Find in the code'], ['Ctrl + H', 'Find and replace'], ['Ctrl + Z / Ctrl + Y', 'Undo / redo'], ['Ctrl + Space', 'Show suggestions while typing'], ['Ctrl + L', 'Open the AI assistant'], ['F1', 'Open this help'], ['Esc', 'Close a menu or panel']];
   $('shortcutList').innerHTML = rows.map(function (r) { return '<dt>' + r[0].split(' + ').map(function (k) { return '<kbd>' + esc(k) + '</kbd>'; }).join(' ') + '</dt><dd>' + esc(r[1]) + '</dd>'; }).join('');
 })();
 
@@ -1149,9 +1162,10 @@ narrow.addEventListener('change', function () { if (!narrow.matches) setView('co
 /* ---------------------------------------------------------------- AI assistant */
 var AI = { cfg: null, busy: false, msgs: [], live: null, poll: null, draft: '' };
 try { AI.msgs = JSON.parse(store('mgx-chat') || '[]'); } catch (e) { AI.msgs = []; }
+AI.convId = store('mgx-chat-id') || null;
 var rtab = 'preview';
 function saveChat() {
-  store('mgx-chat', JSON.stringify(AI.msgs.slice(-24).map(function (m) { return { role: m.role, text: m.text || '', code: m.code || '', report: m.report || null, steps: m.steps || null, error: m.error || '' }; })));
+  store('mgx-chat', JSON.stringify(AI.msgs.slice(-24).map(function (m) { return { role: m.role, text: m.text || '', code: m.code || '', report: m.report || null, steps: m.steps || null, error: m.error || '', kind: m.kind || '', usage: m.usage || null }; })));
 }
 var mqSide = matchMedia('(max-width: 1280px)');
 function setPanel(which, open, focusInput) {
@@ -1217,6 +1231,14 @@ function codeCardHTML(m, idx) {
     '<button class="btn sm primary" data-act="apply" data-i="' + idx + '">Apply to editor</button><button class="btn sm" data-act="render" data-i="' + idx + '">Apply &amp; render</button><button class="btn sm ghost" data-act="copy" data-i="' + idx + '">Copy</button></div>' +
     '<details><summary>Show code</summary><pre>' + esc(m.code) + '</pre></details></div>';
 }
+function usageHTML(u) {
+  if (!u || !(u.in || u.out)) return '';
+  var n = function (x) { return Math.round(x).toLocaleString(); }, near = u.exact ? '' : 'about ';
+  var parts = [near + n(u.in) + ' tokens in, ' + n(u.out) + ' out'];
+  if (u.rounds > 1) parts.push(u.rounds + ' rounds');
+  if (u.seconds) parts.push(Math.round(u.seconds) + ' s');
+  return '<p class="msg-use" title="' + (u.exact ? 'Counted by the AI service' : 'Estimated from the text sent and received (about four characters a token)') + '">' + esc(parts.join(' \u00b7 ')) + '</p>';
+}
 function msgHTML(m, idx) {
   if (m.role === 'user') return '<div class="msg-user">' + esc(m.text) + '</div>';
   var h = '<div class="msg-ai"><span class="who"><svg class="ic sm"><use href="#i-spark"/></svg>Assistant</span>';
@@ -1224,8 +1246,9 @@ function msgHTML(m, idx) {
   if (m.error) h += '<div class="msg-err">' + esc(m.error) + '</div>';
   var t = mdLite(m.text); if (t) h += '<div class="txt">' + t + '</div>';
   h += codeCardHTML(m, idx) + reportHTML(m.report, idx);
+  h += usageHTML(m.usage);
   if (m.kind === 'solve') h += '<div class="solve-act"><button class="btn sm primary" data-act="animate" data-i="' + idx + '">Looks right: animate it</button><button class="btn sm ghost" data-act="fixsolve" data-i="' + idx + '">I will correct it</button></div><p class="help" style="margin:6px 0 0">Check the answer before animating. It costs more to animate a wrong one.</p>';
-  if (m.kind === 'plan') h += '<div class="solve-act"><button class="btn sm primary" data-act="buildplan" data-i="' + idx + '">Looks good: write the scenes</button><button class="btn sm ghost" data-act="fixplan" data-i="' + idx + '">I will change it</button></div><p class="help" style="margin:6px 0 0">Change the plan first if a scene is missing or wrong. It is cheaper than changing code.</p>';
+  if (m.kind === 'plan') h += '<div class="solve-act"><button class="btn sm primary" data-act="buildplan" data-i="' + idx + '">Looks good: write the scenes</button><button class="btn sm ghost" data-act="fixplan" data-i="' + idx + '">I will change it</button><button class="btn sm" data-act="plancards" data-i="' + idx + '">Edit as cards</button></div><p class="help" style="margin:6px 0 0">Change the plan first if a scene is missing or wrong. It is cheaper than changing code.</p>';
   h += '</div>';
   return h;
 }
@@ -1268,7 +1291,7 @@ function lastErrorText() {
 function sendAI(o) {
   if (AI.busy) { api('/api/ai/cancel', {}).catch(function () {}); return; }
   if (DEMO) { toast('Open Manimo from its shortcut to use the assistant'); return; }
-  var text = (o.text || '').trim(), hasCode = !!code.value.trim() && $('useCode').checked, mode = o.mode || (hasCode ? 'edit' : 'write');
+  var text = (o.text || '').trim(), hasCode = o.fresh ? false : o.keep ? !!code.value.trim() : !!code.value.trim() && $('useCode').checked, mode = o.mode || (hasCode ? 'edit' : 'write');
   if (!text && !o.mode) return;
   if (mode === 'explain' && !hasCode) { toast('There is no code to explain yet'); return; }
   var err = o.error !== undefined ? o.error : lastErrorText();
@@ -1278,7 +1301,7 @@ function sendAI(o) {
   AI.msgs.push({ role: 'user', text: label });
   var engine = hasCode ? engineOf(code.value) : $('aiEngine').value; store('mgx-ai-engine', $('aiEngine').value);
   AI.busy = true; AI.live = { steps: [], text: '' }; $('chatInput').value = ''; renderChat();
-  api('/api/ai/run', { mode: mode, prompt: text, engine: engine, code: hasCode ? code.value : '', use_code: hasCode, selection: cm.selection(), error: err, history: history, solve_first: !!($('solveFirst') && $('solveFirst').checked) && !o.noSolve, plan_first: !!($('planFirst') && $('planFirst').checked) && !o.noSolve }).then(function () {
+  api('/api/ai/run', { mode: mode, prompt: text, engine: engine, code: hasCode ? code.value : '', use_code: hasCode, selection: o.selection != null ? o.selection : cm.selection(), error: err, history: history, solve_first: !!($('solveFirst') && $('solveFirst').checked) && !o.noSolve, plan_first: !!($('planFirst') && $('planFirst').checked) && !o.noSolve }).then(function () {
     clearInterval(AI.poll);
     AI.poll = setInterval(function () {
       api('/api/ai/job').then(function (j) { AI.live = j; renderLive(); if (j.state !== 'running') { clearInterval(AI.poll); finishAI(j); } }).catch(function () {});
@@ -1287,10 +1310,13 @@ function sendAI(o) {
 }
 function finishAI(j) {
   AI.busy = false; AI.live = null;
-  if (j.state === 'done' && j.final) AI.msgs.push({ role: 'assistant', text: j.final.text, code: j.final.code, report: j.final.report, steps: j.steps, kind: j.final.kind || '' });
+  if (j.state === 'done' && j.final) AI.msgs.push({ role: 'assistant', text: j.final.text, code: j.final.code, report: j.final.report, steps: j.steps, kind: j.final.kind || '', usage: j.final.usage || null });
   else if (j.state === 'cancelled') AI.msgs.push({ role: 'assistant', text: 'Stopped.', steps: j.steps });
   else AI.msgs.push({ role: 'assistant', text: '', error: j.error || 'Something went wrong.', steps: j.steps });
   saveChat(); renderChat(); say('The assistant has finished.');
+  if (window.MGXChats) window.MGXChats.save();
+  if (window.MGXTakes && window.MGXTakes.running()) { if (j.state === 'done') window.MGXTakes.finished(AI.msgs.length - 1); else window.MGXTakes.stop(j.state === 'cancelled' ? 'Stopped.' : 'Stopped: ' + (j.error || 'the assistant ran into a problem') + '.'); }
+  if (window.MGXPlan && window.MGXPlan.running()) { if (j.state === 'done') window.MGXPlan.finished(AI.msgs.length - 1); else window.MGXPlan.stop(j.state === 'cancelled' ? 'Stopped. The scenes written so far are in the editor.' : 'Stopped: ' + (j.error || 'the assistant ran into a problem') + '.'); }
 }
 function applyAICode(i, thenRender) {
   var m = AI.msgs[i]; if (!m || !m.code) return;
@@ -1317,6 +1343,7 @@ $('chatLog').addEventListener('click', function (e) {
   else if (act === 'copy') { var m = AI.msgs[i]; (navigator.clipboard ? navigator.clipboard.writeText(m.code) : Promise.reject()).then(function () { toast('Code copied'); }, function () { toast('Could not copy'); }); }
   else if (act === 'animate') sendAI({ text: 'The solution above is correct. Now animate it step by step, exactly as solved, with the numbers computed in the scene.', noSolve: true });
   else if (act === 'buildplan') sendAI({ text: 'The plan above is approved. Write the complete scene file: one scene class for each planned scene, in order, with its narration, following the plan exactly.', noSolve: true });
+  else if (act === 'plancards') { if (window.MGXPlan) window.MGXPlan.open(AI.msgs[i].text); }
   else if (act === 'fixplan') { var cp = $('chatInput'); cp.value = 'Change the plan: '; cp.focus(); cp.setSelectionRange(cp.value.length, cp.value.length); }
   else if (act === 'fixsolve') { var ci = $('chatInput'); ci.value = 'Correct the solution: '; ci.focus(); ci.setSelectionRange(ci.value.length, ci.value.length); }
   else if (act === 'fixrest') { applyAICode(i, false); sendAI({ mode: 'fix', text: 'Fix the remaining problems.', error: problemsText(AI.msgs[i]) }); }
@@ -1410,7 +1437,8 @@ $('useCode').addEventListener('change', sizeEstimate);
 $('solveFirst').addEventListener('change', sizeEstimate);
 $('planFirst').addEventListener('change', sizeEstimate);
 $('aiEngine').addEventListener('change', sizeEstimate);
-$('aiNew').addEventListener('click', function () { if (AI.busy) return; AI.msgs = []; saveChat(); renderChat(); });
+$('aiNew').addEventListener('click', function () { if (AI.busy) return; AI.msgs = []; AI.convId = null; store('mgx-chat-id', ''); saveChat(); renderChat(); });
+$('aiHistory').addEventListener('click', function () { if (window.MGXChats) window.MGXChats.open(); });
 $('aiSettingsBtn').addEventListener('click', openAISettings);
 $('aiEngine').value = store('mgx-ai-engine') || 'manimgx';
 
@@ -1430,7 +1458,13 @@ function openAISettings() {
   $('aiAgentHelp').textContent = ags.length ? 'Found on this PC. It must be signed in already. Each request counts against that account’s usage.' : 'No assistant found. Install Claude Code (or Codex / Gemini CLI), sign in once in a terminal, then reopen this window. Or pick an API key.';
   setProvider(c.provider === 'anthropic' || c.provider === 'openai' || c.provider === 'agent' ? (c.provider === 'anthropic' && !c.has_key && ags.length ? 'agent' : c.provider) : 'agent');
   $('aiKeyHelp').textContent = c.has_key ? 'A key is saved. Leave this empty to keep it.' : '';
-  paintFixes(); $('aiDlg').showModal();
+  paintFixes(); paintUsage(); $('aiDlg').showModal();
+}
+function paintUsage() {
+  api('/api/ai/usage').then(function (u) {
+    var n = function (x) { return Math.round(x).toLocaleString(); }, mins = Math.round(u.seconds / 60);
+    $('aiUsage').textContent = u.requests ? 'This month: ' + u.requests + (u.requests === 1 ? ' request' : ' requests') + ', about ' + n(u.in + u.out) + ' tokens (' + n(u.in) + ' sent, ' + n(u.out) + ' received), ' + (mins < 1 ? 'under a minute' : mins + ' min') + ' of waiting. Kept on this PC only.' : 'Nothing used this month yet. Each reply shows what it cost; the monthly total is kept here, on this PC only.';
+  }).catch(function () {});
 }
 function paintFixes(s) {
   function show(r) { $('fixMem').checked = !!r.enabled; $('fixMemCount').textContent = r.count ? r.count + (r.count === 1 ? ' fix saved.' : ' fixes saved.') : 'No fixes saved yet.'; }
@@ -1534,7 +1568,20 @@ window.MANIMO = {
   recentVideos: function () { return history.filter(function (h) { return h.kind === 'video' && h.path; }).slice(0, 8); },
   selectScene: function (n) { selScene = n; store('mgx-scene', n); updateStatus(); },
   outDir: function () { return outDir; }, voiceName: function () { var v = ((info && info.voice && info.voice.voices) || []).filter(function (x) { return x.id === VOICE.id; })[0]; return v ? v.label : ''; }, openSettings: function (tab) { openSettings($('settingsBtn'), tab); }, setLayout: setLayout, layouts: LAYOUTS, jumpToLine: function (n) { jumpToLine(n); }, selectedScene: function () { return selScene === ALL ? '' : selScene; },
-  exit: exitApp,
+  exit: exitApp, chatKey: function () { return (window.MGXProject && window.MGXProject.active() ? window.MGXProject.label() : curName) || 'Untitled'; },
+  chatState: function () { return { id: AI.convId, msgs: AI.msgs }; }, aiBusy: function () { return AI.busy; },
+  setChatId: function (id) { AI.convId = id || null; store('mgx-chat-id', id || ''); },
+  setChat: function (id, msgs) { AI.convId = id; store('mgx-chat-id', id || ''); AI.msgs = msgs.map(function (m) { return Object.assign({ steps: null, report: null }, m); }); saveChat(); renderChat(); },
+  lastSolved: function () {
+    for (var i = AI.msgs.length - 1; i >= 0; i--) if (AI.msgs[i].kind === 'solve') {
+      var q = ''; for (var j = i - 1; j >= 0; j--) if (AI.msgs[j].role === 'user') { q = AI.msgs[j].text; break; }
+      return { problem: q.replace(/^Solve this problem and teach it as a step-by-step animation\.\s*/i, '').replace(/^PROBLEM \(read from the picture\):\s*/i, '').trim(), solution: AI.msgs[i].text.trim() };
+    }
+    return null;
+  }, voices: function () { return (info && info.voice && info.voice.voices) || []; }, voiceOptions: voiceOptions, lessonVoice: function () { return VOICE; },
+  setLessonVoice: function (id, speed) { if (id) VOICE.id = id; if (speed) VOICE.speed = speed; store('mgx-voice', VOICE.id); store('mgx-voice-speed', String(VOICE.speed)); },
+  scriptExport: function () { openScriptExport(); }, sendAI: sendAI, applyAI: applyAICode, aiMsgs: function () { return AI.msgs; }, applyCode: function (t) { cm.replace(t); }, renderScene: function (n) { if (R.state === 'running') return; selScene = n; store('mgx-scene', selScene); $('sceneSel').value = selScene; updateStatus(); $('startBtn').click(); }, menuItems: menuItems, setCheckMarks: function (m) { checkMarks = m || {}; paintMarks(); }, aiReady: function () { return !!(AI.cfg && AI.cfg.configured); }, openAI: openAISettings,
+  pasteCode: function () { $('emptyPaste').click(); }, tryExample: function () { loadExample(0); }, openPrompt: openPrompt, closeMenus: function () { closeMenu(); closeSettings(false); },
   isRendering: function () { return R.state === 'running'; }, exportsFolderOpen: function (p) { return api('/api/open-folder', { path: p }); }
 };
 boot();

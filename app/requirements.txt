@@ -3,4 +3,10 @@ pywebview>=5; sys_platform == "win32"
 imageio-ffmpeg>=0.5,<0.8
 kokoro-onnx>=0.5
 soundfile>=0.12
-phonemizer>=3.3,<3.5
+phonemizer==3.4.0
+# Pinned to the versions Manimo is tested with. Left loose, a new release of any of these (the voice engine, onnxruntime, above all) would be picked up by the
+# next installer build without anyone trying it, and an older copy would be packed beside it, growing the installer.
+onnxruntime==1.31.1
+typer==0.27.3
+markdown-it-py==4.2.0
+annotated-doc==0.0.5

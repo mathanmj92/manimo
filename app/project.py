@@ -520,13 +520,73 @@ def chapters_and_subs(tl, lengths):
     return chapters, cues
 
 
+# ---------------------------------------------------------------- subtitle look
+CAPTION_SIZES = {"small": 0.8, "medium": 1.0, "large": 1.35}
+CAPTION_POSITIONS = {"bottom": 2, "middle": 10, "top": 6}                      # centred; ffmpeg reads Alignment in the older SSA numbering (2 bottom, 6 top, 10 middle)
+CAPTION_COLOURS = {"white": "&H00FFFFFF", "yellow": "&H0000FFFF"}              # ASS colours are blue-green-red
+CAPTION_DEFAULT = {"size": "medium", "position": "bottom", "box": False, "color": "white"}
+
+
+def caption_style(style, w, h):
+    """The ffmpeg `force_style` text for burned-in subtitles. Anything not recognised falls back to the default, so a page cannot inject filter text."""
+    s = dict(CAPTION_DEFAULT)
+    if isinstance(style, dict):
+        for k, allowed in (("size", CAPTION_SIZES), ("position", CAPTION_POSITIONS), ("color", CAPTION_COLOURS)):
+            if style.get(k) in allowed:
+                s[k] = style[k]
+        s["box"] = bool(style.get("box"))
+    base = 14 if w >= h else 8                                                     # ASS sizes are in a 288-high space that scales with the video
+    fs = max(5, int(round(base * CAPTION_SIZES[s["size"]])))
+    parts = ["FontName=Segoe UI", f"FontSize={fs}", "Shadow=0", "MarginV=20", f"Alignment={CAPTION_POSITIONS[s['position']]}", f"PrimaryColour={CAPTION_COLOURS[s['color']]}"]
+    parts += ["BorderStyle=3", "Outline=2", "OutlineColour=&H99000000", "BackColour=&H99000000"] if s["box"] else ["Outline=2"]
+    return ",".join(parts)
+
+
+def caption_preview(style, shape=None):
+    """A frame of the first clip (or a plain background) with sample subtitles in this style, as a small JPEG data URL."""
+    import base64
+    import tempfile
+    ff = _deps["ffmpeg_exe"]()
+    if not ff:
+        raise ValueError("The video tool (ffmpeg) is missing. Reinstall Manimo.")
+    tl = _manifest().get("timeline", {}) if _cur else {}
+    shape = shape if shape in SHAPES else tl.get("size") if tl.get("size") in SHAPES else None
+    src, a, b = None, 16, 9
+    if tl.get("clips"):
+        p = _inside(tl["clips"][0]["src"])
+        if p and p.is_file():
+            src = p
+            if shape is None:
+                info = probe(tl["clips"][0]["src"])
+                if info.get("width") and info.get("height"):
+                    a, b = info["width"], info["height"]
+    if shape:
+        a, b = SHAPES[shape]
+    w = 640 if a >= b else 360
+    h = int(round(w * b / a / 2) * 2)
+    tmp = Path(tempfile.mkdtemp(prefix="manimo-cap-"))
+    try:
+        (tmp / "c.srt").write_text("1\n00:00:00,000 --> 00:00:05,000\nThis is how your subtitles will look.\n", encoding="utf-8")
+        vf = (f"scale={w}:{h}:force_original_aspect_ratio=decrease,pad={w}:{h}:(ow-iw)/2:(oh-ih)/2:color=black,"
+              f"subtitles=filename=c.srt:force_style='{caption_style(style, w, h)}'")
+        inp = ["-ss", "1", "-i", str(src)] if src else ["-f", "lavfi", "-i", f"color=c=0x202840:s={w}x{h}:d=2"]
+        r = subprocess.run([ff, "-y", "-loglevel", "error"] + inp + ["-frames:v", "1", "-vf", vf, "-q:v", "4", "out.jpg"],
+                           capture_output=True, text=True, creationflags=NO_WINDOW, timeout=60, cwd=str(tmp))
+        out = tmp / "out.jpg"
+        if not out.is_file():
+            raise ValueError("Could not make the preview: " + (r.stderr or "")[-200:])
+        return {"image": "data:image/jpeg;base64," + base64.b64encode(out.read_bytes()).decode("ascii"), "width": w, "height": h}
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
 # ---------------------------------------------------------------- export
 def export_state():
     with _lock:
         return dict(_export)
 
 
-def start_export(preset, captions=False):
+def start_export(preset, captions=False, style=None):
     if not _cur:
         raise ValueError("Open a project first.")
     with _lock:
@@ -539,7 +599,7 @@ def start_export(preset, captions=False):
     with _lock:
         _export.clear()
         _export.update({"state": "running", "percent": 0.0, "preset": preset, "error": None, "started": time.time()})
-    threading.Thread(target=_run_export, args=(tl, preset, bool(captions)), daemon=True).start()
+    threading.Thread(target=_run_export, args=(tl, preset, bool(captions), style), daemon=True).start()
     return {"ok": True}
 
 
@@ -548,7 +608,7 @@ def _fail(msg):
         _export.update({"state": "error", "error": msg})
 
 
-def _run_export(tl, preset, captions=False):
+def _run_export(tl, preset, captions=False, style=None):
     try:
         ff = _deps["ffmpeg_exe"]()
         if not ff:
@@ -632,8 +692,7 @@ def _run_export(tl, preset, captions=False):
                 burn = (_cur / "exports") / f".captions-{os.getpid()}.srt"
                 burn.parent.mkdir(exist_ok=True)
                 burn.write_text("".join(f"{i}\n{_fmt_srt(a)} --> {_fmt_srt(b)}\n{txt}\n\n" for i, (a, b, txt) in enumerate(cues, 1)), encoding="utf-8")
-                fs = 14 if w >= h else 8                                       # ASS sizes and margins are in a 288-high space that scales with the video
-                graph.append(f"[{vlabel}]subtitles=filename={burn.name}:force_style='FontName=Segoe UI,FontSize={fs},Outline=2,Shadow=0,MarginV=20,Alignment=2,PrimaryColour=&H00FFFFFF'[vcap]")
+                graph.append(f"[{vlabel}]subtitles=filename={burn.name}:force_style='{caption_style(style, w, h)}'[vcap]")
                 vlabel = "vcap"
         if extra:
             graph.append("[ac]" + "".join(extra) + f"amix=inputs={1 + len(extra)}:duration=first:normalize=0[aout]")
@@ -712,7 +771,9 @@ def handle(method, path, body):
         if path == "/api/project/media-info":
             return probe(body.get("src", "")), 200
         if path == "/api/project/export":
-            return start_export(body.get("preset"), body.get("captions")), 200
+            return start_export(body.get("preset"), body.get("captions"), body.get("style")), 200
+        if path == "/api/project/caption-preview":
+            return caption_preview(body.get("style"), body.get("shape")), 200
         if path == "/api/project/narrate":
             return narrate_text(body.get("text"), body.get("voice"), body.get("speed")), 200
         if path == "/api/project/cover":
